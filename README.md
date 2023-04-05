@@ -1,0 +1,1 @@
+# dolthub-bounty-transparency-in-pricing
