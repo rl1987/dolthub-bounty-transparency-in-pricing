@@ -127,3 +127,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.DS_Store
+.terraform
+*.plan
+*.tfstate
+*.tfstate.backup
+*.csv
+*.xlsx
+*.lock.hcl
+*.curl
+do_token.txt
+*.lock.info
