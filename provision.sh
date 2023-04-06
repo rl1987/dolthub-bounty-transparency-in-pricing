@@ -18,7 +18,7 @@ bash /tmp/install.sh
 mkdir /root/data
 
 pushd /root/data || exit
-dolt clone rl1987/paylesshealth
+dolt clone rl1987/standard-charge-files
 dolt clone rl1987/transparency-in-pricing
 popd || exit
 
