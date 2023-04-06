@@ -103,7 +103,7 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
 
         df_intermediate['filename'] = filename
         df_intermediate['hospital_ein'] = hospital_ein
-        df_intermediate['hospital_ccn'] = '520034'
+        df_intermediate['hospital_ccn'] = ccn
         df_intermediate['url'] = url
         df_intermediate['unique_procedure_id'] = 'nan'
         df_intermediate['internal_code'] = 'nan'
