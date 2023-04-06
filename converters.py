@@ -58,7 +58,6 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         df_intermediate['hcpcs_cpt'] = df_intermediate['hcpcs_cpt'].astype(str)
         df_intermediate['hcpcs_cpt'] = df_intermediate['hcpcs_cpt'].replace('-1', '')
         df_intermediate['hcpcs_cpt'] = df_intermediate['hcpcs_cpt'].apply(lambda cpt: cpt[:5])
-        df_intermediate['quantity_desc'] = 'nan'
         df_intermediate['patient_class'] = df_intermediate['Type'].replace(
             'CHARGE', 'nan').replace(
             'IP DRG*', 'inpatient').replace(
@@ -75,7 +74,7 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         del df_intermediate['Type']
 
         # https://stackoverflow.com/a/60264415
-        df_intermediate['hcpcs_cpt'] = df_intermediate.apply(lambda row: row['code'] if row['code_meta'] == 'cpt' else None, axis=1)
+        df_intermediate['hcpcs_cpt'] = df_intermediate.apply(lambda row: row['code'] if row['code_meta'] == 'cpt' else row['hcpcs_cpt'], axis=1)
         df_intermediate['ms_drg'] = df_intermediate.apply(lambda row: row['code'] if row['code_meta'] == 'drg' else None, axis=1)
         df_intermediate['cdm'] = df_intermediate.apply(lambda row: row['code'] if row['code_meta'] == 'cdm' else None, axis=1)
 
@@ -96,16 +95,42 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         def get_payer_name_from_payer_desc(payer_desc):
             if 'Common_Ground' in payer_desc:
                 return 'Common Ground'
-
-            if 'Health_EOS' in payer_desc:
+            elif 'Health_EOS' in payer_desc:
                 return 'Health EOS'
+            elif 'Aetna' in payer_desc:
+                return 'Aetna'
+            elif 'Anthem' in payer_desc:
+                return 'Anthem'
+            elif 'Aurora' in payer_desc:
+                return 'Aurora'
+            elif 'Centivo' in payer_desc:
+                return 'Centivo'
+            elif 'Cigna' in payer_desc:
+                return 'Cigna'
+            elif 'Common_Ground' in payer_desc:
+                return 'Common Ground'
+            elif 'Everpointe' in payer_desc:
+                return 'Everpointe'
+            elif 'HealthPartners' in payer_desc:
+                return 'HealthPartners'
+            elif 'HPS' in payer_desc:
+                return 'HPS'
+            elif 'HST' in payer_desc:
+                return 'HST'
+            elif 'Humana' in payer_desc:
+                return 'Humana'
+            elif 'Molina' in payer_desc:
+                return 'Molina'
+            elif 'Quartz_One' in payer_desc:
+                return 'Quartz One'
+            elif 'Trilogy' in payer_desc:
+                return 'Trilogy'
+            elif 'UHC' in payer_desc:
+                return 'UHC'
+            elif 'WPS' in payer_desc:
+                return 'WPS'
 
-            components = payer_desc.split('_')
-            if len(components) < 3 or components[-1] == 'Fee':
-                return ''
-
-            components = components[2:]
-            return components[0]
+            return ''
 
         df_intermediate['payer_name'] = df_intermediate['payer_desc'].apply(get_payer_name_from_payer_desc)
 
@@ -116,6 +141,7 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         df_intermediate['hospital_ein'] = hospital_ein
         df_intermediate['hospital_ccn'] = ccn
         df_intermediate['url'] = url
+        df_intermediate['file_last_updated'] = '2023-01-01' # FIXME: refrain from hardcoding this; determine this field from _Fee column name
         df_intermediate['unique_procedure_id'] = 'nan'
         df_intermediate['internal_code'] = 'nan'
         df_intermediate['billing_class'] = 'nan'
@@ -123,23 +149,12 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         def get_plan_type_from_payer_desc(payer_desc):
             components = payer_desc.split('_')
             last_component = components[-1]
-            if last_component in ["HMO", "PPO", "HPN", "GPPO", "EPO"]:
+            if last_component in ["HMO", "PPO", "HPN", "EPO"]:
                 return last_component
 
             return ''
 
-        def get_plan_name_from_payer_desc(payer_desc):
-            if payer_desc.endswith("Fee"):
-                return ''
-
-            payer_name = get_payer_name_from_payer_desc(payer_desc)
-            components = payer_desc.split('_')
-            components = components[2:]
-            plan_type = get_plan_type_from_payer_desc(payer_desc)
-            return ' '.join(components).replace(plan_type, '').replace(payer_name, '').strip()
-
         df_intermediate['plan_type'] = df_intermediate['payer_desc'].apply(get_plan_type_from_payer_desc)
-        df_intermediate['plan_name'] = df_intermediate['payer_desc'].apply(get_plan_name_from_payer_desc)
 
         df_out = pd.DataFrame(columns=TARGET_COLUMNS)
 
