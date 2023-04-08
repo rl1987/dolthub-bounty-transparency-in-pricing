@@ -4,14 +4,12 @@ import pandas as pd
 
 from helpers import *
 
-TARGET_COLUMNS = ['filename', 'hospital_ccn', 'hospital_ein', 'code_meta', 'unique_procedure_id',
-                      'internal_code', 'billing_class', 'patient_class', 'rev_code',
-                      'rev_desc', 'code_type', 'code', 'code_modifier', 'procedure_desc',
-                      'cdm', 'hcpcs_cpt', 'ndc', 'ms_drg', 'icd_10',
-                      'eapg', 'apc', 'cmg', 'quantity_desc', 'quantity_number',
-                      'quantity_type', 'payer_category', 'payer_desc', 'payer_name',
-                      'plan_name', 'plan_id', 'plan_type', 'is_medicare_adv', 'rate', 'rate_method',
-                      'rate_desc', 'file_last_updated', 'url', 'permalink']
+TARGET_COLUMNS = ['filename', 'file_last_updated', 'hospital_ccn', 'hospital_ein', 'code_meta', 
+                  'description', 'procedure_code', 'code_type', 'code', 'rev_code',
+                  'modifier', 'ndc', 'apc', 'billing_class', 'patient_class', 'billed_quantity',
+                  'rev_desc', 'quantity_desc', 'payer_desc', 'payer_category', 'payer_name',
+                  'plan_name', 'plan_id', 'plan_type', 'is_medicare_adv', 'rate', 'rate_method',
+                  'rate_desc', 'url', 'permalink']
 
 class AbstractStandardChargesConverter(object):
     def convert(self, url, file_path, ccn):
@@ -26,9 +24,9 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
 
         df_in = pd.read_xml(file_path)
         # HACK: https://stackoverflow.com/a/50132405
-        df_in['NDC'] = df_in['NDC'].fillna('')
+        df_in['NDC'] = df_in['NDC'].fillna('na')
         df_in['NDC'] = df_in['NDC'].astype(str)
-        df_in['Rev'] = df_in['Rev'].fillna('nan')
+        df_in['Rev'] = df_in['Rev'].fillna('na')
         df_in['Rev'] = df_in['Rev'].astype(str)
         df_in['Chargecode_DRG_CPT'] = df_in['Chargecode_DRG_CPT'].astype(str)
 
@@ -45,38 +43,30 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
             'variable': 'payer_desc',
             'value': 'rate',
             'Description': 'procedure_desc',
-            'CPT': 'hcpcs_cpt',
             'Rev': 'rev_code',
             'NDC': 'ndc',
             'Chargecode_DRG_CPT': 'code'
         })
         del df_intermediate['Facility']
+        del df_intermediate['CPT']
 
+        df_intermediate['ndc'] = df_intermediate['ndc'].apply(lambda ndc: ndc.replace('-', ''))
         df_intermediate['rev_code'] = df_intermediate['rev_code'].apply(lambda rev_code: rev_code.split('.')[0])
         df_intermediate['rev_code'] = df_intermediate['rev_code'].apply(pad_rev_code_if_needed)
-        df_intermediate['hcpcs_cpt'] = df_intermediate['hcpcs_cpt'].fillna('-1')
-        df_intermediate['hcpcs_cpt'] = df_intermediate['hcpcs_cpt'].astype(str)
-        df_intermediate['hcpcs_cpt'] = df_intermediate['hcpcs_cpt'].replace('-1', '')
-        df_intermediate['hcpcs_cpt'] = df_intermediate['hcpcs_cpt'].apply(lambda cpt: cpt[:5])
         df_intermediate['patient_class'] = df_intermediate['Type'].replace(
-            'CHARGE', 'nan').replace(
+            'CHARGE', 'na').replace(
             'IP DRG*', 'inpatient').replace(
             'OP PROC*', 'outpatient')
         df_intermediate['code_type'] = df_intermediate['Type'].replace(
             'IP DRG*', 'ms-drg').replace(
             'OP PROC*', 'hcpcs_cpt').replace(
-            'CHARGE', '')
+            'CHARGE', 'cdm')
         df_intermediate['code_meta'] = df_intermediate['Type'].replace(
             'IP DRG*', 'drg').replace(
             'OP PROC*', 'cpt').replace(
             'CHARGE', 'cdm')
 
         del df_intermediate['Type']
-
-        # https://stackoverflow.com/a/60264415
-        df_intermediate['hcpcs_cpt'] = df_intermediate.apply(lambda row: row['code'] if row['code_meta'] == 'cpt' else row['hcpcs_cpt'], axis=1)
-        df_intermediate['ms_drg'] = df_intermediate.apply(lambda row: row['code'] if row['code_meta'] == 'drg' else None, axis=1)
-        df_intermediate['cdm'] = df_intermediate.apply(lambda row: row['code'] if row['code_meta'] == 'cdm' else None, axis=1)
 
         def get_payer_category_from_payer_desc(payer_desc):
             if payer_desc == "Min":
@@ -142,9 +132,13 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         df_intermediate['hospital_ccn'] = ccn
         df_intermediate['url'] = url
         df_intermediate['file_last_updated'] = '2023-01-01' # FIXME: refrain from hardcoding this; determine this field from _Fee column name
-        df_intermediate['unique_procedure_id'] = 'nan'
-        df_intermediate['internal_code'] = 'nan'
-        df_intermediate['billing_class'] = 'nan'
+        df_intermediate['unique_procedure_id'] = 'na'
+        df_intermediate['internal_code'] = 'na'
+        df_intermediate['billing_class'] = 'na'
+        df_intermediate['procedure_code'] = 'na'
+        df_intermediate['modifier'] = 'na'
+        df_intermediate['apc'] = 'na'
+        df_intermediate['billed_quantity'] = -1
 
         def get_plan_type_from_payer_desc(payer_desc):
             components = payer_desc.split('_')
@@ -161,3 +155,4 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         df_out = df_out.append(df_intermediate)
 
         return df_out
+
