@@ -50,7 +50,6 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         del df_intermediate['Facility']
         del df_intermediate['CPT']
 
-        df_intermediate['ndc'] = df_intermediate['ndc'].apply(lambda ndc: ndc.replace('-', ''))
         df_intermediate['rev_code'] = df_intermediate['rev_code'].apply(lambda rev_code: rev_code.split('.')[0])
         df_intermediate['rev_code'] = df_intermediate['rev_code'].apply(pad_rev_code_if_needed)
         df_intermediate['patient_class'] = df_intermediate['Type'].replace(
