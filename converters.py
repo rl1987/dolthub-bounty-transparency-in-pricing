@@ -42,7 +42,7 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         df_intermediate = df_intermediate.rename(columns={
             'variable': 'payer_desc',
             'value': 'rate',
-            'Description': 'procedure_desc',
+            'Description': 'description',
             'Rev': 'rev_code',
             'NDC': 'ndc',
             'Chargecode_DRG_CPT': 'code'
