@@ -19,7 +19,6 @@ def main():
         '520038' : 'https://www.aurorahealthcare.org/assets/documents/billing-insurance/pricing-transparency/391150165_aurora-medical-center-washington-county_standardcharges.xml',
         '520059' : 'https://www.aurorahealthcare.org/assets/documents/billing-insurance/pricing-transparency/390806347_aurora-medical-center-burlington_standardcharges.xml',
         '520113' : 'https://www.aurorahealthcare.org/assets/documents/billing-insurance/pricing-transparency/391528430_aurora-medical-center-bay-area_standardcharges.xml',
-        '52T206' : 'https://www.aurorahealthcare.org/assets/documents/billing-insurance/pricing-transparency/390806347_aurora-medical-center-summit_standardcharges.xml',
         '520206' : 'https://www.aurorahealthcare.org/assets/documents/billing-insurance/pricing-transparency/390806347_aurora-medical-center-summit_standardcharges.xml',
         '520207' : 'https://www.aurorahealthcare.org/assets/documents/billing-insurance/pricing-transparency/272953799_aurora-medical-center-grafton_standardcharges.xml',
         '520193' : 'https://www.aurorahealthcare.org/assets/documents/billing-insurance/pricing-transparency/391947472_aurora-baycare-medical-center_standardcharges.xml',
