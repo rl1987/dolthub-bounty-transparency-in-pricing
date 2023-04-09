@@ -4,12 +4,12 @@ import pandas as pd
 
 from helpers import *
 
-TARGET_COLUMNS = ['filename', 'file_last_updated', 'hospital_ccn', 'hospital_ein', 'code_meta', 
-                  'description', 'procedure_code', 'code_type', 'code', 'rev_code',
-                  'modifier', 'ndc', 'apc', 'billing_class', 'patient_class', 'billed_quantity',
-                  'rev_desc', 'quantity_desc', 'payer_desc', 'payer_category', 'payer_name',
-                  'plan_name', 'plan_id', 'plan_type', 'is_medicare_adv', 'rate', 'rate_method',
-                  'rate_desc', 'url', 'permalink']
+TARGET_COLUMNS = ['hospital_tin', 'hospital_ccn', 'code_meta', 'description', 'procedure_code', 
+                  'code_type', 'code', 'modifier', 'ndc', 'rev_code', 'rev_desc', 'apc', 
+                  'billing_class', 'patient_class', 'billed_quantity', 'quantity_desc', 
+                  'payer_desc', 'payer_category', 'payer_name', 'plan_desc', 'plan_name',
+                  'plan_id', 'plan_type', 'is_medicare_adv', 'rate', 'rate_method', 'rate_desc',
+                  'filename', 'file_last_updated', 'url', 'permalink']
 
 class AbstractStandardChargesConverter(object):
     def convert(self, url, file_path, ccn):
@@ -124,10 +124,11 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
         df_intermediate['payer_name'] = df_intermediate['payer_desc'].apply(get_payer_name_from_payer_desc)
 
         filename = file_path.split("/")[0]
-        hospital_ein = filename.split("_")[0]
+        hospital_tin = filename.split("_")[0]
+        hospital_tin = hospital_tin[:2] + "-" + hospital_tin[2:]
 
         df_intermediate['filename'] = filename
-        df_intermediate['hospital_ein'] = hospital_ein
+        df_intermediate['hospital_tin'] = hospital_tin
         df_intermediate['hospital_ccn'] = ccn
         df_intermediate['url'] = url
         df_intermediate['file_last_updated'] = '2023-01-01' # FIXME: refrain from hardcoding this; determine this field from _Fee column name
@@ -148,6 +149,7 @@ class AuroraXMLConverter(AbstractStandardChargesConverter):
             return ''
 
         df_intermediate['plan_type'] = df_intermediate['payer_desc'].apply(get_plan_type_from_payer_desc)
+        df_intermediate['plan_desc'] = 'na'
 
         df_out = pd.DataFrame(columns=TARGET_COLUMNS)
 

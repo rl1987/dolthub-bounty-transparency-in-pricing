@@ -8,7 +8,7 @@ def cleanup_values(values):
     return list(map(lambda value: cleanup_dollar_value(value), values))
 
 def pad_rev_code_if_needed(rev_code):
-    if type(rev_code) == str and rev_code != 'nan':
+    if type(rev_code) == str and rev_code != 'na':
         if len(rev_code) == 3:
             return '0' + rev_code
         elif len(rev_code) == 2:
