@@ -1,6 +1,6 @@
 def cleanup_dollar_value(value):
     if type(value) == str:
-        return value.replace(",", "").replace("$", "")
+        return value.replace(",", "").replace("$", "").replace("(", "").replace(")", "")
 
     return value
 
