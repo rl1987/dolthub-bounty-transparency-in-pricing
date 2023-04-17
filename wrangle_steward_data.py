@@ -73,8 +73,10 @@ def convert_df1(df_in, ccn, ein, url):
     df_mid = df_mid.rename(columns={
         'LINE TYPE': 'code_type',
         'CHARGE CODE/PACKAGE': 'code_orig',
+        'CHARGE CODE/ PACKAGE': 'code_orig',
         'CHARGE DESCRIPTION': 'description',
         'DRG': 'drg',
+        'CPT/HCPCS': 'cpt',
         'CPT': 'cpt',
         'MODIFIERS': 'modifier',
         'REV CODE': 'rev_code',
@@ -86,7 +88,6 @@ def convert_df1(df_in, ccn, ein, url):
     df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_orig', value_name='rate')
 
     df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
-
 
     df_mid['rev_code'] = df_mid['rev_code'].apply(pad_rev_code_if_needed)
 
@@ -140,7 +141,6 @@ def convert_df1(df_in, ccn, ein, url):
 
     df_mid['plan_orig'] = 'na'
     df_mid['hospital_ccn'] = ccn
-    ein = ein[:2] + "-" + ein[2:]
     df_mid['hospital_ein'] = ein
     df_mid['filename'] = url.split("/")[-1]
     df_mid['url'] = url
@@ -211,7 +211,6 @@ def convert_df2(df_in, ccn, ein, url):
 
     df_mid['plan_orig'] = 'na'
     df_mid['hospital_ccn'] = ccn
-    ein = ein[:2] + "-" + ein[2:]
     df_mid['hospital_ein'] = ein
     df_mid['filename'] = url.split("/")[-1]
 
@@ -237,7 +236,7 @@ def convert_df(ccn, ein, url):
     subprocess.run(["wget", "--no-clobber", url, "-O", filename])
     
     df_in = pd.read_csv(filename, dtype={'REV CODE': str, 'Rev Code': str},
-                        low_memory=False)
+                        encoding='latin-1', low_memory=False)
 
     df_out = None
     if df_in.columns.to_list()[0] == "LINE TYPE":
@@ -248,7 +247,7 @@ def convert_df(ccn, ein, url):
         print("Don't know how to process: {}".format(url))
         return
 
-    df_out.to_csv(ccn + ".csv", index=False)
+    df_out.to_csv("steward_" + ccn + ".csv", index=False)
 
 def main():
     db = dolt.Dolt(sys.argv[1])
