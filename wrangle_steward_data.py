@@ -233,7 +233,6 @@ def convert_df2(df_in, ccn, ein, url):
 
 def convert_df(ccn, ein, url):
     filename = url.split("/")[-1]
-    ein = filename.split("_")[0]
     ein = ein[:2] + "-" + ein[2:]
 
     target_filename = "steward_" + ccn + ".csv"
