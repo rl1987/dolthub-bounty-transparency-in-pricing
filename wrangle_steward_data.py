@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+import os
 
 from dateutil.parser import parse as parse_datetime
 import doltcli as dolt
@@ -79,6 +80,7 @@ def convert_df1(df_in, ccn, ein, url):
         'CPT/HCPCS': 'cpt',
         'CPT': 'cpt',
         'MODIFIERS': 'modifier',
+        'MODIFIER': 'modifier',
         'REV CODE': 'rev_code',
         'NDC': 'ndc',
     })
@@ -106,7 +108,8 @@ def convert_df1(df_in, ccn, ein, url):
     df_mid = pd.concat([df_mid_drg, df_mid_cdm])
     
     del df_mid['drg']
-    del df_mid['cpt']
+    if 'cpt' in df_mid.columns.to_list():
+        del df_mid['cpt']
     df_mid['modifier'] = df_mid['modifier'].fillna('na')
     df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
     df_mid['ndc'] = df_mid['ndc'].fillna('na')
@@ -233,6 +236,11 @@ def convert_df(ccn, ein, url):
     ein = filename.split("_")[0]
     ein = ein[:2] + "-" + ein[2:]
 
+    target_filename = "steward_" + ccn + ".csv"
+    if os.path.isfile(target_filename):
+        print("Output file already present - skipping")
+        return
+
     subprocess.run(["wget", "--no-clobber", url, "-O", filename])
     
     df_in = pd.read_csv(filename, dtype={'REV CODE': str, 'Rev Code': str},
@@ -247,7 +255,7 @@ def convert_df(ccn, ein, url):
         print("Don't know how to process: {}".format(url))
         return
 
-    df_out.to_csv("steward_" + ccn + ".csv", index=False)
+    df_out.to_csv(target_filename, index=False)
 
 def main():
     db = dolt.Dolt(sys.argv[1])
