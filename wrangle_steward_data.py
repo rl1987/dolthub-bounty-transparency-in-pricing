@@ -42,6 +42,8 @@ TARGET_COLUMNS = [
     'permalink'
 ]
 
+from helpers import cleanup_dollar_value
+
 def pad_rev_code_if_needed(rev_code):
     if type(rev_code) == str and rev_code != 'na':
         if len(rev_code) == 3:
@@ -83,9 +85,9 @@ def payer_category_from_payer_orig(payer_orig):
 
 
 def patient_class_from_payer_orig(payer_orig):
-    if "OP Rate" in payer_orig:
+    if "OP" in payer_orig:
         return "outpatient"
-    elif "IP Rate" in payer_orig:
+    elif "IP" in payer_orig:
         return "inpatient"
 
     return 'na'
@@ -94,12 +96,13 @@ def process_df_mid(df_mid, ccn, ein, url):
     df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
     df_mid['rev_code'] = df_mid['rev_code'].apply(pad_rev_code_if_needed)
 
-    df_mid['code_type'] = 'none'
+    df_mid['code_type'] = None
     df_mid.loc[df_mid['cpt'].notnull(), 'code_type'] = 'cpt'
     df_mid.loc[df_mid['drg'].notnull(), 'code_type'] = 'drg'
     
     df_mid_cpt = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'cpt'])
     df_mid_cpt['code'] = df_mid['cpt']
+    df_mid_cpt = df_mid_cpt[~df_mid_cpt['code'].str.contains(".", regex=False)]
     df_mid_cpt['code_prefix'] = 'hcpcs_cpt'
 
     df_mid_drg = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'drg'])
@@ -126,7 +129,7 @@ def process_df_mid(df_mid, ccn, ein, url):
     df_mid_drg['code_prefix'] = df_mid['code_orig'].apply(code_orig_to_code_prefix)
     df_mid_drg['code'] = df_mid_drg['drg'].apply(pad_drg_if_needed)
 
-    df_mid_cdm = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'none'])
+    df_mid_cdm = pd.DataFrame(df_mid.loc[df_mid['code_type'].isnull()])
     df_mid_cdm['code_prefix'] = 'cdm'
     df_mid_cdm['code'] = df_mid_cdm['code_orig']
     df_mid_cdm['code_prefix'] = 'none'
@@ -147,7 +150,10 @@ def process_df_mid(df_mid, ccn, ein, url):
 
     df_mid['payer_category'] = df_mid['payer_orig'].apply(payer_category_from_payer_orig)
 
-    df_mid['patient_class'] = df_mid['payer_orig'].apply(patient_class_from_payer_orig)
+    if not 'patient_class' in df_mid.columns:
+        df_mid['patient_class'] = df_mid['payer_orig'].apply(patient_class_from_payer_orig)
+    else:
+        df_mid['patient_class'] = df_mid['patient_class'].replace("OP", "outpatient").replace("IP", "inpatient")
 
     df_mid['billing_class'] = 'na'
 
@@ -168,6 +174,9 @@ def process_df_mid(df_mid, ccn, ein, url):
         df_mid['internal_code'] = 'na'
 
     df_mid['rate'] = df_mid['rate'].apply(lambda rate: None if type(rate) == str and rate.startswith("ERROR") else rate)
+    df_mid = df_mid.dropna(subset=['rate'], axis=0)
+    df_mid['rate'] = df_mid['rate'].apply(cleanup_dollar_value)
+    df_mid['code_orig'] = None
 
     df_out = pd.DataFrame(columns=TARGET_COLUMNS)
     df_out = df_out.append(df_mid)
@@ -183,7 +192,7 @@ def convert_df1(df_in, ccn, ein, url):
         'CHARGE CODE/ PACKAGE': 'code_orig',
         'CHARGE DESCRIPTION': 'description',
         'DRG': 'drg',
-        'CPT/HCPCS': 'cpt',
+        'CPT\xae/HCPCS': 'cpt',
         'CPT': 'cpt',
         'MODIFIERS': 'modifier',
         'MODIFIER': 'modifier',
@@ -234,8 +243,7 @@ def convert_df(ccn, ein, url):
 
     df_out = None
     if df_in.columns.to_list()[0] == "LINE TYPE":
-        #df_out = convert_df1(df_in, ccn, ein, url)
-        return
+        df_out = convert_df1(df_in, ccn, ein, url)
     elif df_in.columns.to_list()[0] == "As of Date":
         df_out = convert_df2(df_in, ccn, ein, url)
     else:
