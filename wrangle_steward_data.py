@@ -69,6 +69,112 @@ def plan_type_from_payer_orig(payer_orig):
 
     return None
 
+def payer_category_from_payer_orig(payer_orig):
+    if payer_orig == "Gross Charges" or payer_orig == "GROSS CHARGES":
+        return 'gross'
+    elif payer_orig == "Discounted Cash Price" or payer_orig == "SELF PAY CASH PRICE":
+        return 'cash'
+    elif payer_orig == "De-Identified Minimum" or payer_orig == "MIN NEGOTIATED RATE":
+        return 'min'
+    elif payer_orig == "De-Identified Maximum" or payer_orig == "MAX NEGOTIATED RATE":
+        return 'max'
+
+    return 'payer'
+
+
+def patient_class_from_payer_orig(payer_orig):
+    if "OP Rate" in payer_orig:
+        return "outpatient"
+    elif "IP Rate" in payer_orig:
+        return "inpatient"
+
+    return 'na'
+
+def process_df_mid(df_mid, ccn, ein, url):
+    df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
+    df_mid['rev_code'] = df_mid['rev_code'].apply(pad_rev_code_if_needed)
+
+    df_mid['code_type'] = 'none'
+    df_mid.loc[df_mid['cpt'].notnull(), 'code_type'] = 'cpt'
+    df_mid.loc[df_mid['drg'].notnull(), 'code_type'] = 'drg'
+    
+    df_mid_cpt = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'cpt'])
+    df_mid_cpt['code'] = df_mid['cpt']
+    df_mid_cpt['code_prefix'] = 'hcpcs_cpt'
+
+    df_mid_drg = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'drg'])
+    df_mid_drg['code'] = df_mid_drg['drg']
+    df_mid_drg['code_type'] = 'drg'
+
+    def code_orig_to_code_prefix(code_orig):
+        if code_orig.startswith('APR-DRG'):
+            return 'apr-drg'
+        elif code_orig.startswith('MS-DRG'):
+            return 'ms-drg'
+
+        return 'none'
+
+    def pad_drg_if_needed(drg):
+        if len(drg) == 1:
+            return "00" + drg
+        elif len(drg) == 2:
+            return "0" + drg
+
+        return drg
+
+    df_mid_drg['code_type'] = 'drg'
+    df_mid_drg['code_prefix'] = df_mid['code_orig'].apply(code_orig_to_code_prefix)
+    df_mid_drg['code'] = df_mid_drg['drg'].apply(pad_drg_if_needed)
+
+    df_mid_cdm = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'none'])
+    df_mid_cdm['code_prefix'] = 'cdm'
+    df_mid_cdm['code'] = df_mid_cdm['code_orig']
+    df_mid_cdm['code_prefix'] = 'none'
+    df_mid_cdm['code'] = 'na'
+
+    df_mid = pd.concat([df_mid_cpt, df_mid_drg, df_mid_cdm])
+    
+    del df_mid['drg']
+    if 'cpt' in df_mid.columns.to_list():
+        del df_mid['cpt']
+    df_mid['modifier'] = df_mid['modifier'].fillna('na')
+    df_mid['modifier'] = df_mid['modifier'].apply(lambda modifier: 'na' if len(modifier.strip()) == 0 else modifier)
+    df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
+    if 'ndc' in df_mid.columns:
+        df_mid['ndc'] = df_mid['ndc'].fillna('na')
+    else:
+        df_mid['ndc'] = 'na'
+
+    df_mid['payer_category'] = df_mid['payer_orig'].apply(payer_category_from_payer_orig)
+
+    df_mid['patient_class'] = df_mid['payer_orig'].apply(patient_class_from_payer_orig)
+
+    df_mid['billing_class'] = 'na'
+
+    df_mid['plan_type'] = df_mid['payer_orig'].apply(plan_type_from_payer_orig)
+    
+    if 'file_last_updated' in df_mid.columns:
+        df_mid['file_last_updated'] = df_mid['file_last_updated'].apply(
+            lambda file_last_updated: parse_datetime(file_last_updated).isoformat().split("T")[0])
+    df_mid['plan_orig'] = 'na'
+    df_mid['hospital_ccn'] = ccn
+    df_mid['hospital_ein'] = ein
+    df_mid['filename'] = url.split("/")[-1]
+    df_mid['url'] = url
+    
+    if 'internal_code' in df_mid.columns:
+        df_mid['internal_code'] = df_mid['internal_code'].fillna('na')
+    else:
+        df_mid['internal_code'] = 'na'
+
+    df_mid['rate'] = df_mid['rate'].apply(lambda rate: None if type(rate) == str and rate.startswith("ERROR") else rate)
+
+    df_out = pd.DataFrame(columns=TARGET_COLUMNS)
+    df_out = df_out.append(df_mid)
+    df_out = df_out.dropna(subset=['rate'], axis=0)
+
+    return df_out
+
 def convert_df1(df_in, ccn, ein, url):
     df_mid = pd.DataFrame(df_in)
     df_mid = df_mid.rename(columns={
@@ -89,71 +195,7 @@ def convert_df1(df_in, ccn, ein, url):
     remaining_columns = df_mid.columns.to_list()[:8]
     df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_orig', value_name='rate')
 
-    df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
-
-    df_mid['rev_code'] = df_mid['rev_code'].apply(pad_rev_code_if_needed)
-
-    df_mid['code_type'] = df_mid['code_type'].str.lower()
-
-    df_mid_drg = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'drg'])
-
-    df_mid_cdm = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'cdm'])
-    df_mid_cdm['code_prefix'] = 'cdm'
-
-    df_mid_drg['code_type'] = 'drg'
-    df_mid_drg['code_prefix'] = df_mid['code_orig'].apply(code_orig_to_code_prefix)
-    df_mid_drg['code'] = df_mid_drg['code_orig'].apply(lambda code_orig: code_orig.split(" ")[-1])
-
-    df_mid_cdm['code'] = df_mid_cdm['code_orig']
-    df_mid = pd.concat([df_mid_drg, df_mid_cdm])
-    
-    del df_mid['drg']
-    if 'cpt' in df_mid.columns.to_list():
-        del df_mid['cpt']
-    df_mid['modifier'] = df_mid['modifier'].fillna('na')
-    df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
-    df_mid['ndc'] = df_mid['ndc'].fillna('na')
-    
-    def payer_category_from_payer_orig(payer_orig):
-        if payer_orig == "GROSS CHARGES":
-            return 'gross'
-        elif payer_orig == "SELF PAY CASH PRICE":
-            return 'cash'
-        elif payer_orig == "MIN NEGOTIATED RATE":
-            return 'min'
-        elif payer_orig == "MAX NEGOTIATED RATE":
-            return 'max'
-
-        return 'payer'
-
-    df_mid['payer_category'] = df_mid['payer_orig'].apply(payer_category_from_payer_orig)
-
-    def patient_class_from_payer_orig(payer_orig):
-        if "OP Rate" in payer_orig:
-            return "outpatient"
-        elif "IP Rate" in payer_orig:
-            return "inpatient"
-
-        return 'na'
-
-    df_mid['patient_class'] = df_mid['payer_orig'].apply(patient_class_from_payer_orig)
-
-    df_mid['billing_class'] = 'na'
-
-    df_mid['plan_type'] = df_mid['payer_orig'].apply(plan_type_from_payer_orig)
-
-    df_mid['plan_orig'] = 'na'
-    df_mid['hospital_ccn'] = ccn
-    df_mid['hospital_ein'] = ein
-    df_mid['filename'] = url.split("/")[-1]
-    df_mid['url'] = url
-    df_mid['internal_code'] = 'na'
-
-    df_out = pd.DataFrame(columns=TARGET_COLUMNS)
-    df_out = df_out.append(df_mid)
-    df_out = df_out.dropna(subset=['rate'], axis=0)
-
-    return df_out
+    return process_df_mid(df_mid, ccn, ein, url)
 
 def convert_df2(df_in, ccn, ein, url):
     df_mid = pd.DataFrame(df_in)
@@ -174,62 +216,7 @@ def convert_df2(df_in, ccn, ein, url):
     remaining_columns = df_mid.columns.to_list()[:10]
     df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_orig', value_name='rate')
 
-    df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
-    df_mid['rev_code'] = df_mid['rev_code'].apply(pad_rev_code_if_needed)
-
-    df_mid['code_type'] = df_mid['code_type'].str.lower()
-    df_mid_drg = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'drg'])
-    df_mid_cdm = pd.DataFrame(df_mid.loc[df_mid['code_type'] == 'cdm'])
-    df_mid_cdm['code_prefix'] = 'cdm'
-
-    df_mid_drg['code_type'] = 'drg'
-    df_mid_drg['code_prefix'] = df_mid['code_orig'].apply(code_orig_to_code_prefix)
-    df_mid_drg['code'] = df_mid_drg['code_orig'].apply(lambda code_orig: code_orig.split(" ")[-1])
-    df_mid_cdm['code'] = df_mid_cdm['code_orig']
-    df_mid = pd.concat([df_mid_drg, df_mid_cdm])
-    del df_mid['drg']
-    del df_mid['cpt']
-    df_mid['modifier'] = df_mid['modifier'].fillna('na')
-    df_mid['modifier'] = df_mid['modifier'].apply(lambda modifier: 'na' if len(modifier.strip()) == 0 else modifier) 
-    df_mid['rev_code'] = df_mid['rev_code'].fillna('na')
-
-    def payer_category_from_payer_orig(payer_orig):
-        if payer_orig == "Gross Charges":
-            return 'gross'
-        elif payer_orig == "Discounted Cash Price":
-            return 'cash'
-        elif payer_orig == "De-Identified Minimum":
-            return 'min'
-        elif payer_orig == "De-Identified Maximum":
-            return 'max'
-
-        return 'payer'
-
-    df_mid['payer_category'] = df_mid['payer_orig'].apply(payer_category_from_payer_orig)
-    df_mid['patient_class'] = df_mid['patient_class'].replace("OP", "outpatient").replace("IP", "inpatient")
-
-    df_mid['billing_class'] = 'na'
-
-    df_mid['plan_type'] = df_mid['payer_orig'].apply(plan_type_from_payer_orig)
-
-    df_mid['plan_orig'] = 'na'
-    df_mid['hospital_ccn'] = ccn
-    df_mid['hospital_ein'] = ein
-    df_mid['filename'] = url.split("/")[-1]
-
-    df_mid['file_last_updated'] = df_mid['file_last_updated'].apply(
-        lambda file_last_updated: parse_datetime(file_last_updated).isoformat().split("T")[0])
-
-    df_mid['url'] = url
-    df_mid['internal_code'] = df_mid['internal_code'].fillna('na')
-    df_mid['ndc'] = 'na'
-    df_mid['rate'] = df_mid['rate'].apply(lambda rate: None if type(rate) == str and rate.startswith("ERROR") else rate)
-
-    df_out = pd.DataFrame(columns=TARGET_COLUMNS)
-    df_out = df_out.append(df_mid)
-    df_out = df_out.dropna(subset=['rate'], axis=0)
-
-    return df_out
+    return process_df_mid(df_mid, ccn, ein, url)
 
 def convert_df(ccn, ein, url):
     filename = url.split("/")[-1]
@@ -242,12 +229,13 @@ def convert_df(ccn, ein, url):
 
     subprocess.run(["wget", "--no-clobber", url, "-O", filename])
     
-    df_in = pd.read_csv(filename, dtype={'REV CODE': str, 'Rev Code': str},
+    df_in = pd.read_csv(filename, dtype={'REV CODE': str, 'Rev Code': str, 'DRG': str},
                         encoding='latin-1', low_memory=False)
 
     df_out = None
     if df_in.columns.to_list()[0] == "LINE TYPE":
-        df_out = convert_df1(df_in, ccn, ein, url)
+        #df_out = convert_df1(df_in, ccn, ein, url)
+        return
     elif df_in.columns.to_list()[0] == "As of Date":
         df_out = convert_df2(df_in, ccn, ein, url)
     else:
