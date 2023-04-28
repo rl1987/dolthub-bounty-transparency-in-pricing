@@ -22,7 +22,7 @@ resource "digitalocean_droplet" "server" {
   image     = "debian-11-x64"
   name      = "dhdb-transparency-in-pricing"
   region    = "sfo3"
-  size      = "s-2vcpu-4gb"
+  size      = "s-8vcpu-16gb"
   ssh_keys  = [for key in data.digitalocean_ssh_keys.keys.ssh_keys : key.fingerprint]
   user_data = file("provision.sh")
 
@@ -37,11 +37,6 @@ resource "digitalocean_droplet" "server" {
   provisioner "file" {
     source      = "~/.dolt"
     destination = "/root"
-  }
-
-  provisioner "file" {
-    source      = "./do_token.txt"
-    destination = "/root/do_token.txt"
   }
 }
 
