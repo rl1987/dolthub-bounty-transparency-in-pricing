@@ -30,7 +30,7 @@ apt-get install -y gcc g++ make nodejs
 npm install pm2 -g
 
 jupyter notebook --generate-config 
-sudo pm2 start "jupyter notebook --allow-root --ip=0.0.0.0"
+sudo pm2 start "jupyter-lab --allow-root --ip=0.0.0.0"
 sudo pm2 start 'dolt sql-server --data-dir /root/data -H 127.0.0.1 --user=rl --password=trustno1 --loglevel=trace'
 pm2 save
 pm2 startup systemd
