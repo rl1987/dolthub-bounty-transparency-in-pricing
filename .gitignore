@@ -139,3 +139,4 @@ dmypy.json
 *.curl
 do_token.txt
 *.lock.info
+*.swp
