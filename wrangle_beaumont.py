@@ -39,8 +39,8 @@ TARGET_COLUMNS = [
     'additional_payer_notes'
 ]
 
-ccn = "230142"
-url = "https://www.beaumont.org/docs/default-source/default-document-library/cdm-documents/2023/381405141_beaumont-hospital-wayne-hospital_standardcharges.csv"
+ccn = "230089"
+url = "https://www.beaumont.org/docs/default-source/default-document-library/cdm-documents/2023/381459362_beaumont-hospital-grosse-pointe-hospital_standardcharges.csv"
 filename = url.split("/")[-1].replace("%20", " ")
 ein = filename.split("_")[0]
 ein = ein[:2] + "-" + ein[2:]
@@ -104,13 +104,13 @@ df_mid['hospital_id'] = ccn
 df_mid['apr_drg'] = ''
 df_mid['modifiers'] = ''
 df_mid['thru'] = None
-df_mid['apc'] = None
 df_mid['icd'] = None
+df_mid['apc'] = None
 df_mid['drug_hcpcs_multiplier'] = None
 df_mid['drug_quantity'] = None
 df_mid['drug_units'] = None
-df_mid['billing_class'] = ''
-df_mid['setting'] = ''
+df_mid['billing_class'] = 1
+df_mid['setting'] = 1
 df_mid['contracting_method'] = None
 df_mid['additional_payer_notes'] = None
 df_mid['rev_code'] = df_mid['rev_code'].fillna('')
@@ -126,10 +126,11 @@ df_mid = df_mid.drop_duplicates(subset=[
     'hcpcs_cpt', 'ndc', 'billing_class', 'setting', 'payer', 'plan'
 ])
 
-db_connection_str = 'mysql+mysqlconnector://rl:trustno1@localhost/transparency_in_pricing'
-db_connection = create_engine(db_connection_str, pool_size=1)
+#db_connection_str = 'mysql+mysqlconnector://rl:trustno1@localhost/transparency_in_pricing'
+#db_connection = create_engine(db_connection_str, pool_size=1)
 
 df_out = pd.DataFrame(df_mid[TARGET_COLUMNS])
+del df_out['apc']
 
 df_out.to_csv(ccn + ".csv", index=False, quoting=csv.QUOTE_ALL)
-df_out.to_sql('rate', db_connection, if_exists='append', index=False, method=None, chunksize=1)
+#df_out.to_sql('rate', db_connection, if_exists='append', index=False, method=None, chunksize=1)
