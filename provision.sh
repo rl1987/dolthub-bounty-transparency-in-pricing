@@ -10,7 +10,7 @@ dolt config --global --add user.email rimantas@keyspace.lt
 dolt config --global --add user.name "rl1987"
 
 pip3 install --upgrade jupyterlab
-pip3 install --upgrade requests lxml openpyxl pandas xlrd doltcli
+pip3 install --upgrade requests lxml openpyxl pandas xlrd doltcli httpx "httpx[http2]"
 pip3 install --upgrade mysql-connector-python sqlalchemy==1.4.16
 
 curl -sSL https://repos.insights.digitalocean.com/install.sh -o /tmp/install.sh
