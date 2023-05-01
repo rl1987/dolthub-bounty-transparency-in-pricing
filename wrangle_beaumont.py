@@ -175,6 +175,22 @@ def main():
     ccn = "230089"
     url = "https://www.beaumont.org/docs/default-source/default-document-library/cdm-documents/2023/381459362_beaumont-hospital-grosse-pointe-hospital_standardcharges.csv"
 
+    out_f = open("hospital.sql", "w")
+    
+    for ccn in TASKS.keys():
+        url = TASKS[ccn]
+
+        filename = derive_filename_from_url(url)
+        ein = derive_ein_from_filename(filename)
+
+        query = 'UPDATE hospital SET ein = "{}", last_updated = "{}", file_name = "{}", stdchg_file_url = "{}", transparency_page = "{}" WHERE id = "{}";'.format(
+                ein, LAST_UPDATED_AT, filename, url, TRANSPARENCY_PAGE_URL, ccn)
+
+        out_f.write(query)
+        out_f.write("\n")
+
+    out_f.close()
+
     for ccn in TASKS.keys():
         url = TASKS[ccn]
         print(ccn, url)
@@ -186,8 +202,6 @@ def main():
         df_out = convert_dataframe(df_in, ccn)
 
         df_out.to_csv("rate_" + ccn + ".csv", index=False, quoting=csv.QUOTE_ALL)
-
-    # TODO: update hospital table
 
 if __name__ == "__main__":
     main()
