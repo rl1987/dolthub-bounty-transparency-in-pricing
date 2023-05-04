@@ -78,7 +78,7 @@ def convert_dataframe(df_in, ccn):
         'Rev Code': 'rev_code',
         'REV CODE': 'rev_code',
         'Procedure Description': 'description',
-        'FS ID': 'setting'
+        'FS ID': 'local_code'
     })
 
     if 'GROSS CHARGE' in df_mid.columns.to_list():
@@ -310,6 +310,7 @@ def main():
             
             df_out.to_csv("rate_" + ccn + billing_class + ".csv", 
                           index=False, quoting=csv.QUOTE_MINIMAL)
+    print('UPDATE rate SET line_type = SUBSTRING(local_code, 1, 25), local_code = NULL WHERE local_code LIKE "Office%" OR local_code LIKE "Hospital%";')
 
 if __name__ == "__main__":
     main()
