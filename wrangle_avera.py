@@ -14,6 +14,7 @@ from helpers import cleanup_dollar_value
 
 TARGET_COLUMNS = [ 
     'hospital_id',
+    #'row_id',
     'line_type',
     'description',
     'rev_code',
@@ -21,6 +22,7 @@ TARGET_COLUMNS = [
     'code',
     'ms_drg',
     'apr_drg',
+    'eapg',
     'hcpcs_cpt',
     'modifiers',
     'thru',
@@ -29,16 +31,18 @@ TARGET_COLUMNS = [
     'ndc',
     'drug_hcpcs_multiplier',
     'drug_quantity',
-    'drug_units',
+    'drug_unit_of_measurement',
+    'drug_type_of_measurement',
     'billing_class',
     'setting',
     'payer_category',
-    'payer',
-    'plan',
+    'payer_name',
+    'plan_name',
     'standard_charge',
     'standard_charge_percent',
     'contracting_method',
-    'additional_payer_notes'
+    'additional_generic_notes',
+    'additional_payer_specific_notes'
 ]
 
 def create_session():
@@ -119,43 +123,47 @@ def convert_dataframe(df_in, ccn):
 
     money_columns = df_mid.columns[5:]
     remaining_columns = df_mid.columns.to_list()[:5]
-    df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer', value_name='standard_charge')
+    df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_name', value_name='standard_charge')
     
     df_mid['hcpcs_cpt'] = df_mid.apply(lambda row: row['cpt'] if row['cpt'] is not None else row['hcpcs'], axis=1)
     del df_mid['cpt']
     del df_mid['hcpcs']
-    df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].fillna('')
 
-    df_mid['payer_category'] = df_mid['payer'].apply(payer_category_from_payer)
+    df_mid['payer_category'] = df_mid['payer_name'].apply(payer_category_from_payer)
 
     df_mid['hospital_id'] = ccn
     df_mid['line_type'] = None
     df_mid['rev_code'] = df_mid['rev_code'].fillna('')
-    df_mid['rev_code'] = df_mid['rev_code'][:4] # 0964an
-    df_mid['local_code'] = df_mid['local_code'].fillna('')
-    df_mid['code'] = ''
-    df_mid['ms_drg'] = ''
-    df_mid['apr_drg'] = ''
-    df_mid['apr_drg'] = ''
+    df_mid['rev_code'] = df_mid['rev_code'].astype(str)
+    df_mid['rev_code'] = df_mid['rev_code'].str[:4] # 0964an
+    df_mid['rev_code'] = df_mid['rev_code'].apply(
+        lambda rev_code: rev_code.zfill(4) if len(rev_code) > 0 and len(rev_code) < 4 else rev_code
+    )
+    df_mid.loc[df_mid['rev_code'] == '', 'rev_code'] = None
+    df_mid['code'] = None
+    df_mid['ms_drg'] = None
+    df_mid['apr_drg'] = None
+    df_mid['eapg'] = None
     df_mid['modifiers'] = ''
     df_mid['thru'] = None
     df_mid['apc'] = None
     df_mid['icd'] = None
-    df_mid['ndc'] = ''
+    df_mid['ndc'] = None
     df_mid['drug_hcpcs_multiplier'] = None
     df_mid['drug_quantity'] = None
-    df_mid['drug_units'] = None
-    df_mid['billing_class'] = 1
-    df_mid['setting'] = 1
-    df_mid['plan'] = ''
+    df_mid['drug_unit_of_measurement'] = None
+    df_mid['drug_type_of_measurement'] = None
+    df_mid['billing_class'] = None
+    df_mid['setting'] = None
+    df_mid['plan_name'] = None
     df_mid['standard_charge_percent'] = None
     df_mid['contracting_method'] = None
-    df_mid['additional_payer_notes'] = None
+    df_mid['additional_generic_notes'] = None
+    df_mid['additional_payer_specific_notes'] = None
     
     df_mid = df_mid.dropna(subset=['standard_charge'])
 
     df_out = pd.DataFrame(df_mid[TARGET_COLUMNS])
-    del df_out['apc']
 
     print(df_out)
 
@@ -171,6 +179,15 @@ def get_input_dataframe(session, url):
     return df_in
 
 TASKS = {
+    '160124': 'https://www.avera.org/app/files/public/e920ec8c-5f0b-480e-b0dd-8644ed571c8d/426037582_lakes-regional-hospital_standardcharges.xlsx',
+    '161336': 'https://www.avera.org/app/files/public/ecaf1876-8445-4bac-a539-746aa4a50654/420932564_hegg-health-center_standardcharges.xlsx',
+    '161345': 'https://www.avera.org/app/files/public/42b8b0dd-2ecb-46d2-9db1-7a01f0e75026/420890973_osceola-regional-realth-center_standardcharges.xlsx',
+    '161368': 'https://www.avera.org/app/files/public/93140804-fd16-463c-abaa-43505e2a6f31/420928451_floyd-valley-healthcare_standardcharges.xlsx',
+    '241374': 'https://www.avera.org/app/files/public/a8a06bca-7cff-40aa-a6c4-70f04224d16a/411392082_pipestone-county-medical-ctr_standardcharges.xlsx',
+    '431306': 'https://www.avera.org/app/files/public/84e67da3-faca-4710-9f74-865cf7e5a9ed/460239781_platte-healthcare_standardcharges.xlsx',
+    '431326': 'https://www.avera.org/app/files/public/4ac8cf50-4896-4620-b659-a2813c7e36fa/460224743_avera-milbank-hospital_standardcharges.xlsx',
+    '431327': 'https://www.avera.org/app/files/public/55aa22ce-08b4-47ff-b943-f9feb5199b85/460225414_st.-michaels-hospital_standardcharges.xlsx',
+    '161346': 'https://www.avera.org/app/files/public/6621903d-6293-41f9-a9fe-104587a689bf/420796764_sioux-center-health_standardcharges.xlsx',
     '161321': 'https://www.avera.org/app/files/public/887b57a5-04fc-4a68-9636-d6f0d9b2dfab/460224743_avera-merrill-pioneer_standardcharges.xlsx',
     '161351': 'https://www.avera.org/app/files/public/188febb6-f608-4630-877b-eeab98316fa3/420680370_avera-holy-family-hospital_standardcharges.xlsx',
     '241343': 'https://www.avera.org/app/files/public/84e6c5b3-a05c-41ab-bc99-9e7cdecc6698/843156881_avera-granite-falls-health-center_standardcharges.xlsx',
@@ -209,7 +226,7 @@ def main():
         
         df_out = convert_dataframe(df_in, ccn)
 
-        df_out.to_csv("rate_" + ccn + ".csv", index=False, quoting=csv.QUOTE_ALL)
+        df_out.to_csv("rate_" + ccn + ".csv", index=False, quoting=csv.QUOTE_MINIMAL)
 
     out_f = open("hospital.sql", "w")
     
@@ -225,7 +242,7 @@ def main():
         date_str = first_cell_value.replace("Prices Effective ", "")
         last_updated_at = parse_datetime(date_str).isoformat().split("T")[0]
 
-        query = 'UPDATE hospital SET ein = "{}", last_updated = "{}", file_name = "{}", stdchg_file_url = "{}", transparency_page = "{}" WHERE id = "{}";'.format(
+        query = 'UPDATE hospital SET ein = "{}", last_updated = "{}", file_name = "{}", mrf_url = "{}", transparency_page = "{}" WHERE id = "{}";'.format(
                 ein, last_updated_at, filename, url, TRANSPARENCY_PAGE_URL, ccn)
 
         out_f.write(query)
