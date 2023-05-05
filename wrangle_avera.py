@@ -124,8 +124,21 @@ def convert_dataframe(df_in, ccn):
     money_columns = df_mid.columns[5:]
     remaining_columns = df_mid.columns.to_list()[:5]
     df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_name', value_name='standard_charge')
+
+    def join_hcpcs_cpt_fields(row):
+        if row['cpt'] is not None:
+            return row['cpt']
+        
+        if row['hcpcs'] is not None:
+            return row['hcpcs']
+        
+        return None
     
-    df_mid['hcpcs_cpt'] = df_mid.apply(lambda row: row['cpt'] if row['cpt'] is not None else row['hcpcs'], axis=1)
+    df_mid.loc[df_mid['cpt'].isnull(), 'cpt'] = None
+    df_mid.loc[df_mid['hcpcs'].isnull(), 'hcpcs'] = None
+    
+    df_mid['hcpcs_cpt'] = df_mid.apply(join_hcpcs_cpt_fields, axis=1)
+    
     del df_mid['cpt']
     del df_mid['hcpcs']
 
