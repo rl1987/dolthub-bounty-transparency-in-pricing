@@ -97,14 +97,14 @@ def payer_category_from_payer(payer):
         return 'gross'
     elif payer == 'Discounted Cash Price':
         return 'cash'
-    elif payer == 'Minimum Negotiated Rate':
+    elif payer.startswith('Min'):
         return 'min'
-    elif payer == 'Maximum Negotiated Rate':
+    elif payer.startswith('Max'):
         return 'max'
     
     return 'payer'
 
-def convert_dataframe(df_in, ccn):
+def convert_cdm_dataframe(df_in, ccn):
     df_mid = pd.DataFrame(df_in)
 
     df_mid = df_mid.rename(columns={
@@ -182,13 +182,76 @@ def convert_dataframe(df_in, ccn):
 
     return df_out
 
-def get_input_dataframe(session, url):
+def convert_bundle_dataframe(df_in, ccn):
+    df_mid = pd.DataFrame(df_in)
+    
+    df_mid.columns = list(map(lambda c: c.strip(), df_mid.columns.to_list()))
+    
+    df_mid = df_mid.rename(columns={
+        'Item / Service Description': 'description',
+        'Item /Service Description': 'description',
+        'Patient Type': 'setting'
+    })
+    
+    del df_mid['Facility Name']
+    
+    if 'setting' in df_mid.columns.to_list():
+        df_mid.loc[df_mid['setting'] == 'O', 'setting'] = 'outpatient'
+        df_mid.loc[df_mid['setting'] == 'I', 'setting'] = 'inpatient'
+        
+    money_columns = df_mid.columns[2:]
+    remaining_columns = df_mid.columns[:2]
+    
+    df_mid = pd.melt(df_mid, id_vars=remaining_columns, 
+                     var_name='payer_name', value_name='standard_charge')
+        
+    df_mid['payer_category'] = df_mid['payer_name'].apply(payer_category_from_payer)
+        
+    df_mid['hospital_id'] = ccn
+    df_mid['line_type'] = None
+    df_mid['rev_code'] = None
+    df_mid['local_code'] = None
+    df_mid['code'] = None
+    df_mid['ms_drg'] = None
+    df_mid['apr_drg'] = None
+    df_mid['eapg'] = None
+    df_mid['hcpcs_cpt'] = None
+    df_mid['modifiers'] = None
+    df_mid['thru'] = None
+    df_mid['apc'] = None
+    df_mid['icd'] = None
+    df_mid['ndc'] = None
+    df_mid['drug_hcpcs_multiplier'] = None
+    df_mid['drug_quantity'] = None
+    df_mid['drug_unit_of_measurement'] = None
+    df_mid['drug_type_of_measurement'] = None
+    df_mid['billing_class'] = None
+    df_mid['plan_name'] = None
+    df_mid['standard_charge_percent'] = None
+    df_mid['contracting_method'] = 'other'
+    df_mid['additional_generic_notes'] = 'Service Bundle'
+    df_mid['additional_payer_specific_notes'] = None
+    
+    if not 'setting' in df_mid.columns.to_list():
+        df_mid['setting'] = None
+        
+    df_mid = df_mid[df_mid['standard_charge'].notnull()]
+    
+    df_out = pd.DataFrame(df_mid[TARGET_COLUMNS])
+    
+    return df_out
+
+def get_input_dataframe(session, url, sheet_name):
     filename = derive_filename_from_url(url)
     download_file(session, url, filename)
 
-    df_in = pd.read_excel(filename, skiprows=1, sheet_name='CDM', engine='openpyxl')
-    print(df_in)
-
+    try:
+        df_in = pd.read_excel(filename, skiprows=1, sheet_name=sheet_name, engine='openpyxl')
+        print(df_in)
+    except:
+        # Some files don't have the Service Bundle sheet.
+        return None
+        
     return df_in
 
 TASKS = {
@@ -235,9 +298,16 @@ def main():
 
         filename = derive_filename_from_url(url)
         
-        df_in = get_input_dataframe(session, url)
+        df_in1 = get_input_dataframe(session, url, 'CDM')
+        df_in2 = get_input_dataframe(session, url, 'Service Bundle')
         
-        df_out = convert_dataframe(df_in, ccn)
+        df_out1 = convert_cdm_dataframe(df_in1, ccn)
+        
+        if df_in2 is not None:
+            df_out2 = convert_bundle_dataframe(df_in2, ccn)
+            df_out = pd.concat([df_out1, df_out2])
+        else:
+            df_out = df_out1
 
         df_out.to_csv("rate_" + ccn + ".csv", index=False, quoting=csv.QUOTE_MINIMAL)
 
