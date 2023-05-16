@@ -25,6 +25,7 @@ TARGET_COLUMNS = [
     'eapg',
     'hcpcs_cpt',
     'modifiers',
+    'alt_hcpcs_cpt',
     'thru',
     'apc',
     'icd',
@@ -138,6 +139,7 @@ def convert_cdm_dataframe(df_in, ccn):
     df_mid.loc[df_mid['hcpcs'].isnull(), 'hcpcs'] = None
     
     df_mid['hcpcs_cpt'] = df_mid.apply(join_hcpcs_cpt_fields, axis=1)
+    df_mid['alt_hcpcs_cpt'] = df_mid.apply(lambda row: row['hcpcs'] if row['hcpcs'] is not None and row['cpt'] is not None else None, axis=1)
     
     del df_mid['cpt']
     del df_mid['hcpcs']
@@ -217,6 +219,7 @@ def convert_bundle_dataframe(df_in, ccn):
     df_mid['eapg'] = None
     df_mid['hcpcs_cpt'] = None
     df_mid['modifiers'] = None
+    df_mid['alt_hcpcs_cpt'] = None
     df_mid['thru'] = None
     df_mid['apc'] = None
     df_mid['icd'] = None
