@@ -78,7 +78,7 @@ def convert_dataframe(df_in, ccn):
         'Rev Code': 'rev_code',
         'REV CODE': 'rev_code',
         'Procedure Description': 'description',
-        'FS ID': 'local_code'
+        'FS ID': 'additional_generic_notes'
     })
 
     if 'GROSS CHARGE' in df_mid.columns.to_list():
@@ -153,15 +153,16 @@ def convert_dataframe(df_in, ccn):
     if not 'setting' in df_mid.columns:
         df_mid['setting'] = None
         
-    df_mid.loc[df_mid['setting'] == 'Office Clinic Provider Fee', 'setting'] = 'inpatient'
-    df_mid.loc[df_mid['setting'] == 'Hospital Outpatient Department Provider Fee', 'setting'] = 'outpatient'
-        
     df_mid['additional_payer_notes'] = None
-    df_mid['additional_generic_notes'] = None
+
+    if not 'additional_generic_notes' in df_mid.columns:
+        df_mid['additional_generic_notes'] = None
+
     df_mid['standard_charge_percent'] = None
     
-    df_mid['additional_generic_notes'] = df_mid['eapg'].apply(
-        lambda eapg: 'Custom code marked as EAP' if type(eapg) == str and eapg.startswith('Custom') else None
+    df_mid['additional_generic_notes'] = df_mid.apply(
+        lambda row: 'Custom code marked as EAP' if type(row['eapg']) == str and row['eapg'].startswith('Custom') else row['additional_generic_notes'], 
+        axis=1
     )
     
     df_mid.loc[df_mid['additional_generic_notes'] == 'Custom code marked as EAP', 'eapg'] = None
@@ -181,6 +182,9 @@ def convert_dataframe(df_in, ccn):
     
     df_mid.loc[df_mid['additional_generic_notes'] == 'Truncated eapg', 'eapg'] = df_mid[df_mid['additional_generic_notes'] == 'Truncated eapg']['eapg'].str[:5]
     
+    df_mid.loc[df_mid['additional_generic_notes'] == 'Office Clinic Provider Fee', 'line_type'] = 'office clinic provider fee'
+    df_mid.loc[df_mid['additional_generic_notes'] == 'Hospital Outpatient Department Provider Fee', 'line_type'] = 'hosp. OP dept. provider fee'
+
     df_mid.loc[df_mid['hcpcs_cpt'] == 'RN001' ,'additional_generic_notes'] = 'Invalid hcpcs_cpt: RN001'
     df_mid.loc[df_mid['hcpcs_cpt'] == 'RN001' ,'code'] = 'RN001'
 
@@ -194,7 +198,6 @@ def convert_dataframe(df_in, ccn):
     df_mid.loc[df_mid['hcpcs_cpt'] == '1992' ,'code'] = '1992'
     df_mid.loc[df_mid['hcpcs_cpt'] == '1992' ,'hcpcs_cpt'] = None
     
-    
     if 'local_code' in df_mid.columns:
         df_mid['local_code'] = df_mid['local_code'].str[:40]
     else:
@@ -202,7 +205,7 @@ def convert_dataframe(df_in, ccn):
 
     if not 'rev_code' in df_mid.columns:
         df_mid['rev_code'] = None
-    
+
     df_mid['ndc'] = df_mid['ndc'].fillna('')
     df_mid.loc[df_mid['ndc'].str.startswith("WBH"), 'ndc'] = None
     df_mid.loc[df_mid['ndc'] == '', 'ndc'] = None
@@ -310,7 +313,6 @@ def main():
             
             df_out.to_csv("rate_" + ccn + billing_class + ".csv", 
                           index=False, quoting=csv.QUOTE_MINIMAL)
-    print('UPDATE rate SET line_type = SUBSTRING(local_code, 1, 25), local_code = NULL WHERE local_code LIKE "Office%" OR local_code LIKE "Hospital%";')
 
 if __name__ == "__main__":
     main()
