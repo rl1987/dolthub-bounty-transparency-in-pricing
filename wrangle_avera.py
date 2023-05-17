@@ -159,7 +159,7 @@ def convert_cdm_dataframe(df_in, ccn):
     df_mid['ms_drg'] = None
     df_mid['apr_drg'] = None
     df_mid['eapg'] = None
-    df_mid['modifiers'] = ''
+    df_mid['modifiers'] = None
     df_mid['thru'] = None
     df_mid['apc'] = None
     df_mid['icd'] = None
