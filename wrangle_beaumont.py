@@ -90,6 +90,7 @@ def convert_dataframe(df_in, ccn):
     remaining_columns = df_mid.columns.to_list()[:money_idx]
     df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_name', value_name='standard_charge')
 
+    df_mid['description'] = df_mid['description'].str.strip()
     df_mid['payer_name'] = df_mid['payer_name'].str.strip()
     
     df_mid['standard_charge'] = df_mid['standard_charge'].astype(str)
@@ -117,11 +118,10 @@ def convert_dataframe(df_in, ccn):
         df_mid.loc[df_mid['line_type'] == 'DRG', 'ms_drg'] = df_mid[df_mid['line_type'] == 'DRG']['code'].apply(
             lambda code: code.split(" ")[-1]
         )
-        df_mid.loc[df_mid['line_type'] == 'EAP', 'eapg'] = df_mid[df_mid['line_type'] == 'EAP']['code'].astype(str)
-    
+            
         df_mid['code'] = df_mid['code'].fillna('')
         df_mid['code'] = df_mid['code'].apply(lambda code: str(int(code)) if type(code) == int or type(code) == float else code)
-    
+
         if not 'hcpcs_cpt' in df_mid.columns:
             df_mid['hcpcs_cpt'] = df_mid['code'].apply(lambda code: code if len(code) == 5 else None)
         
