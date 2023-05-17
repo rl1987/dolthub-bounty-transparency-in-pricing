@@ -33,10 +33,3 @@ jupyter notebook --generate-config
 sudo pm2 start "jupyter-lab --allow-root --ip=0.0.0.0"
 pm2 save
 pm2 startup systemd
-
-swapoff -a
-dd if=/dev/zero of=/swapfile bs=1G count=16
-chmod 0600 /swapfile
-mkswap /swapfile
-swapon /swapfile
-echo "/swapfile swap swap sw 0 0" >> /etc/fstab
