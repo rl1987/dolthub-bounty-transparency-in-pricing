@@ -7,6 +7,7 @@ import pandas as pd
 from dateutil.parser import parse as parse_datetime
 
 from helpers import derive_ein_from_filename, derive_filename_from_url
+from helpers import cleanup_dollar_value
 
 TARGET_COLUMNS = [
     'hospital_id',
@@ -76,6 +77,8 @@ def convert_dataframe(df_in, ccn):
     remaining_columns = df_mid.columns.to_list()[:3]
     df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_name', value_name='standard_charge')
 
+    df_mid['standard_charge'] = df_mid['standard_charge'].apply(cleanup_dollar_value)
+
     df_mid['hospital_id'] = ccn
     df_mid['line_type'] = None
     df_mid['rev_code'] = None
@@ -84,11 +87,19 @@ def convert_dataframe(df_in, ccn):
     df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].astype(str)
 
     df_mid.loc[df_mid['local_code'] == 'DRG', 'ms_drg'] = df_mid[df_mid['local_code'] == 'DRG']['hcpcs_cpt'].str.zfill(3)
+    df_mid['ms_drg'] = df_mid['ms_drg'].apply(lambda ms_drg: ms_drg.replace(".00", "").zfill(3) if type(ms_drg) == str and ms_drg.endswith(".00") else ms_drg)
 
+    # HACK for Ponca city hospital.
+    df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].apply(lambda cpt: cpt.replace(".00", "") if type(cpt) == str and cpt.endswith(".00") else cpt)
     df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].apply(lambda cpt: None if type(cpt) == str and len(cpt) < 5 and cpt.isnumeric() else cpt)
+    df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].apply(lambda cpt: cpt.replace(".00", "") if type(cpt) == str and cpt.endswith(".00") else cpt)
+    df_mid.loc[df_mid['hcpcs_cpt'] == '0', 'hcpcs_cpt'] = None
     
     df_mid['local_code'] = df_mid['local_code'].fillna('')
     df_mid.loc[~df_mid['local_code'].str.isnumeric(), 'line_type'] = df_mid[~df_mid['local_code'].str.isnumeric()]['local_code']
+    df_mid['local_code'] = df_mid['local_code'].apply(
+        lambda local_code: local_code.replace(".00", "") if type(local_code) == str and local_code.endswith(".00") else local_code
+    )
     df_mid.loc[~df_mid['local_code'].str.isnumeric(), 'local_code'] = None
 
     df_mid.loc[df_mid['hcpcs_cpt'] == 'SURG', 'hcpcs_cpt'] = None
@@ -128,7 +139,7 @@ def get_input_dataframe(url):
     filename = derive_filename_from_url(url)
     subprocess.run(["wget", "--no-clobber", url, "-O", filename])
 
-    df_in = pd.read_csv(filename, dtype={'CPT': str})
+    df_in = pd.read_csv(filename, dtype={'CPT': str, 'SVCCD': str})
 
     return df_in
 
