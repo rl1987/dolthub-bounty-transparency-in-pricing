@@ -9,8 +9,8 @@ import requests
 from lxml import html
 import js2xml
 
-FIELDNAMES = [ "name", "street_addr", "city", "zip_code", "phone", "website",
-              "transparency_page", "mrf_urls" ]
+FIELDNAMES = [ "name", "street_addr", "city", "zip_code", "state", 
+              "phone", "website", "transparency_page", "mrf_urls" ]
 
 def main():
     out_f = open("chs_urls.csv", "w", encoding="utf-8")
@@ -51,6 +51,7 @@ def main():
                 'street_addr': hospital_dict.get('street'),
                 'city': hospital_dict.get('city'),
                 'zip_code': hospital_dict.get('zip'),
+                'state': state,
                 'phone': hospital_dict.get("phone"),
                 'website': hospital_dict.get("websiteUrl")
             }
