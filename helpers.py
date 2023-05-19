@@ -1,3 +1,7 @@
+#!/usr/bin/python3
+
+from urllib.parse import urlparse
+
 def cleanup_dollar_value(value):
     if type(value) == str:
         return value.replace(",", "").replace("$", "").replace("(", "").replace(")", "").strip()
@@ -17,3 +21,13 @@ def pad_rev_code_if_needed(rev_code):
             return '000' + rev_code
 
     return rev_code
+
+def derive_ein_from_filename(filename):
+    ein = filename.split("_")[0]
+    ein = ein[:2] + "-" + ein[2:]
+    return ein
+
+def derive_filename_from_url(url):
+    o = urlparse(url)
+    filename = o.path.split("/")[-1]
+    return filename
