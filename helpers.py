@@ -30,4 +30,5 @@ def derive_ein_from_filename(filename):
 def derive_filename_from_url(url):
     o = urlparse(url)
     filename = o.path.split("/")[-1]
+    filename = filename.replace("%20", " ")
     return filename
