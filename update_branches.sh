@@ -14,7 +14,7 @@ for branch in "${branches[@]}"; do
 
   # Run 'dolt pull' and 'dolt push'
   echo "Running 'dolt merge main'..."
-  dolt merge main
+  dolt merge main -m "Merge branch 'main' into $branch"
   echo "Running 'dolt push'..."
   dolt push
 done
