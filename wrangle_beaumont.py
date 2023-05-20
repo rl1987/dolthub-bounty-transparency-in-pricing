@@ -8,7 +8,7 @@ import pandas as pd
 
 from helpers import cleanup_dollar_value
 
-TARGET_COLUMNS = [ 
+TARGET_COLUMNS = [
     'hospital_id',
     #'row_id',
     'line_type',
@@ -21,6 +21,7 @@ TARGET_COLUMNS = [
     'eapg',
     'hcpcs_cpt',
     'modifiers',
+    'alt_hcpcs_cpt',
     'thru',
     'apc',
     'icd',
@@ -37,11 +38,9 @@ TARGET_COLUMNS = [
     'standard_charge',
     'standard_charge_percent',
     'contracting_method',
-    'additional_payer_notes',
     'additional_generic_notes',
     'additional_payer_specific_notes'
 ]
-
 def derive_ein_from_filename(filename):
     ein = filename.split("_")[0]
     ein = ein[:2] + "-" + ein[2:]
@@ -141,6 +140,7 @@ def convert_dataframe(df_in, ccn):
     df_mid['hospital_id'] = ccn
     df_mid['apr_drg'] = None
     df_mid['modifiers'] = None
+    df_mid['alt_hcpcs_cpt'] = None
     df_mid['thru'] = None
     df_mid['apc'] = None
     df_mid['icd'] = None
@@ -149,55 +149,36 @@ def convert_dataframe(df_in, ccn):
     df_mid['drug_quantity'] = None
     df_mid['drug_unit_of_measurement'] = None
     df_mid['billing_class'] = None
+    df_mid['standard_charge_percent'] = None
     
     if not 'setting' in df_mid.columns:
         df_mid['setting'] = None
-        
-    df_mid['additional_payer_notes'] = None
 
     if not 'additional_generic_notes' in df_mid.columns:
         df_mid['additional_generic_notes'] = None
-
-    df_mid['standard_charge_percent'] = None
-    
-    df_mid['additional_generic_notes'] = df_mid.apply(
-        lambda row: 'Custom code marked as EAP' if type(row['eapg']) == str and row['eapg'].startswith('Custom') else row['additional_generic_notes'], 
+        
+    df_mid['eapg'] = df_mid.apply(
+        lambda row: None if type(row['eapg']) == str and row['eapg'].startswith('Custom') else row['eapg'], 
         axis=1
     )
-    
-    df_mid.loc[df_mid['additional_generic_notes'] == 'Custom code marked as EAP', 'eapg'] = None
     
     df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].apply(lambda cpt: cpt.replace(" ", "") if type(cpt) == str else cpt)
-    
-    df_mid['additional_generic_notes'] = df_mid.apply(
-        lambda row: 'Truncated hcpcs_cpt' if row['hcpcs_cpt'] is not None and len(row['hcpcs_cpt']) > 5 else row['additional_generic_notes'], axis=1
-    )
-    
-    df_mid.loc[df_mid['additional_generic_notes'] == 'Truncated hcpcs_cpt', 'hcpcs_cpt'] = df_mid[df_mid['additional_generic_notes'] == 'Truncated hcpcs_cpt']['hcpcs_cpt'].str[:5]
-    
-    df_mid['additional_generic_notes'] = df_mid.apply(
-        lambda row: 'Truncated eapg' if type(row['eapg']) == str and len(row['eapg']) > 5 else row['additional_generic_notes'], 
-        axis=1
-    )
-    
-    df_mid.loc[df_mid['additional_generic_notes'] == 'Truncated eapg', 'eapg'] = df_mid[df_mid['additional_generic_notes'] == 'Truncated eapg']['eapg'].str[:5]
+
+    df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].fillna('')
+
+    df_mid.loc[df_mid['hcpcs_cpt'].str.len() > 5, 'code'] = df_mid[df_mid['hcpcs_cpt'].str.len() > 5]['hcpcs_cpt']
+    df_mid.loc[df_mid['hcpcs_cpt'].str.len() > 5, 'hcpcs_cpt'] = None
+    df_mid.loc[df_mid['hcpcs_cpt'].str.len() == 4, 'code'] = df_mid[df_mid['hcpcs_cpt'].str.len() == 4]['hcpcs_cpt']
+    df_mid.loc[df_mid['hcpcs_cpt'].str.len() == 4, 'hcpcs_cpt'] = None
     
     df_mid.loc[df_mid['additional_generic_notes'] == 'Office Clinic Provider Fee', 'line_type'] = 'office clinic provider fee'
     df_mid.loc[df_mid['additional_generic_notes'] == 'Hospital Outpatient Department Provider Fee', 'line_type'] = 'hosp. OP dept. provider fee'
 
-    df_mid.loc[df_mid['hcpcs_cpt'] == 'RN001' ,'additional_generic_notes'] = 'Invalid hcpcs_cpt: RN001'
-    df_mid.loc[df_mid['hcpcs_cpt'] == 'RN001' ,'code'] = 'RN001'
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'RN001', 'code'] = 'RN001'
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'RN001', 'hcpcs_cpt'] = None
 
-    df_mid.loc[df_mid['hcpcs_cpt'] == 'RN001' ,'hcpcs_cpt'] = None
-    
-    df_mid.loc[df_mid['hcpcs_cpt'] == '1992' ,'additional_generic_notes'] = 'Invalid hcpcs_cpt: 1992'
-    df_mid.loc[df_mid['hcpcs_cpt'] == '1992' ,'code'] = '1992'
-    df_mid.loc[df_mid['hcpcs_cpt'] == '1992' ,'hcpcs_cpt'] = None
-    
-    df_mid.loc[df_mid['hcpcs_cpt'] == '1992' ,'additional_generic_notes'] = 'Invalid hcpcs_cpt: 1992'
-    df_mid.loc[df_mid['hcpcs_cpt'] == '1992' ,'code'] = '1992'
-    df_mid.loc[df_mid['hcpcs_cpt'] == '1992' ,'hcpcs_cpt'] = None
-    
+    df_mid.loc[df_mid['hcpcs_cpt'] == '', 'hcpcs_cpt'] = None
+
     if 'local_code' in df_mid.columns:
         df_mid['local_code'] = df_mid['local_code'].str[:40]
     else:
@@ -219,7 +200,7 @@ def get_input_dataframe(url):
     subprocess.run(["wget", "--no-clobber", url, "-O", filename])
 
     skiprows=None
-    if 'royal-oak' in url and not 'profession' in url:
+    if 'royal-oak' in url and not 'professional' in url:
         skiprows = 1
 
     df_in = pd.read_csv(filename, 
