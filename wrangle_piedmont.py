@@ -93,13 +93,21 @@ def convert_dataframe(df_in, ccn):
         'HCPCS Code': 'hcpcs_cpt',
         'MSDRG': 'ms_drg',
         'Rev Code': 'rev_code',
-        'NDC': 'ndc'
+        'NDC': 'ndc',
+        'Service': 'setting',
     })
 
-    money_columns = df_mid.columns[6:]
-    remaining_columns = df_mid.columns[:6]
+    money_idx = df_mid.columns.to_list().index('Charges')
+    money_columns = df_mid.columns[money_idx:]
+    remaining_columns = df_mid.columns[:money_idx]
     df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_name', value_name='standard_charge')
 
+    if 'setting' in df_mid.columns:
+        df_mid['additional_generic_notes'] = df_mid['setting']
+        df_mid['setting'] = None
+        df_mid.loc[df_mid['additional_generic_notes'].str.startswith('Inpatient'), 'setting'] = 'inpatient'
+        df_mid.loc[df_mid['additional_generic_notes'].str.startswith('Outpatient'), 'setting'] = 'outpatient'
+    
     df_mid.loc[df_mid['ms_drg'].notnull(), 'ms_drg'] = df_mid[df_mid['ms_drg'].notnull()]['ms_drg'].str.replace('MS', '')
     df_mid.loc[df_mid['rev_code'].notnull(), 'rev_code'] = df_mid[df_mid['rev_code'].notnull()]['rev_code'].str.zfill(4)
     df_mid.loc[df_mid['hcpcs_cpt'].notnull(), 'hcpcs_cpt'] = df_mid[df_mid['hcpcs_cpt'].notnull()]['hcpcs_cpt'].str.upper()
@@ -124,11 +132,13 @@ def convert_dataframe(df_in, ccn):
     df_mid['drug_unit_of_measurement'] = None
     df_mid['drug_type_of_measurement'] = None
     df_mid['billing_class'] = None
-    df_mid['setting'] = None
+    if not 'setting' in df_mid.columns:
+        df_mid['setting'] = None
     df_mid['plan_name'] = None
     df_mid['standard_charge_percent'] = None
     df_mid['contracting_method'] = None
-    df_mid['additional_generic_notes'] = None
+    if not 'additional_generic_notes' in df_mid.columns:
+        df_mid['additional_generic_notes'] = None
     df_mid['additional_payer_specific_notes'] = None
 
     df_out = pd.DataFrame(df_mid[TARGET_COLUMNS])
