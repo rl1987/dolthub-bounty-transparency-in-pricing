@@ -102,7 +102,9 @@ def convert_dataframe(df_in, ccn):
     )
     df_mid.loc[~df_mid['local_code'].str.isnumeric(), 'local_code'] = None
 
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'SURG', 'additional_generic_notes'] = 'SURG'
     df_mid.loc[df_mid['hcpcs_cpt'] == 'SURG', 'hcpcs_cpt'] = None
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'MANUL', 'additional_generic_notes'] = 'MANUL'
     df_mid.loc[df_mid['hcpcs_cpt'] == 'MANUL', 'hcpcs_cpt'] = None
     df_mid.loc[df_mid['hcpcs_cpt'] == 'nan', 'hcpcs_cpt'] = None
 
@@ -121,13 +123,15 @@ def convert_dataframe(df_in, ccn):
     df_mid['billing_class'] = None
 
     df_mid['setting'] = df_mid['payer_name'].apply(setting_from_payer_name)
-    
+
+    df_mid['plan_name'] = df_mid['payer_name'].apply(
+        lambda payer_name: payer_name.split(" - ")[-1].strip() if " - " in payer_name else None
+    )
+
     df_mid['payer_category'] = df_mid['payer_name'].apply(payer_category_from_payer_name)
     
-    df_mid['plan_name'] = None
     df_mid['standard_charge_percent'] = None
     df_mid['contracting_method'] = None
-    df_mid['additional_generic_notes'] = None
     df_mid['additional_payer_specific_notes'] = None
 
     df_mid = df_mid.dropna(subset=['standard_charge'])
