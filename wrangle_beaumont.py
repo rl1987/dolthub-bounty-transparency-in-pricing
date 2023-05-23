@@ -41,6 +41,7 @@ TARGET_COLUMNS = [
     'additional_generic_notes',
     'additional_payer_specific_notes'
 ]
+
 def derive_ein_from_filename(filename):
     ein = filename.split("_")[0]
     ein = ein[:2] + "-" + ein[2:]
@@ -56,9 +57,9 @@ def payer_category_from_payer(payer):
         return 'gross'
     elif payer == 'CASH PRICE':
         return 'cash'
-    elif payer == 'DEIDENTIFIED MIN' or payer == 'Min Price':
+    elif payer == 'DEIDENTIFIED MIN' or payer == 'DE-IDENTIFIED  MINIMUM' or payer == 'Min Price':
         return 'min'
-    elif payer == 'DEIDENTIFIED MAX' or payer == 'Max Price':
+    elif payer == 'DEIDENTIFIED MAX' or payer == 'DE-IDENTIFIED MAXIMUM' or payer == 'Max Price':
         return 'max'
     
     return 'payer'
