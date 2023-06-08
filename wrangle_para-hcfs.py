@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
-import subprocess
+import csv
 from urllib.parse import urljoin
 from io import StringIO
+import subprocess
+import sys
 
 from dateutil.parser import parse as parse_datetime
 import pandas as pd
@@ -190,14 +192,28 @@ def perform_task(h_f, ccn, app_url, transparency_page):
     h_f.write("\n")
 
 def main():
-    # TODO: read parameters for multiple hospitals from CSV file.
-    transparency_page = "https://www.adventisthealth.org/patient-resources/financial-services/healthcare-costs-and-charges/cost-estimator-tool/"
-    ccn = "050455"
-    app_url = "https://apps.para-hcfs.com/PTT/FinalLinks/Adventist_Bakersfield_V3.aspx"
+    if len(sys.argv) != 2:
+        print("Usage:")
+        print("{} <tasks_csv>".format(sys.argv[0]))
+        return
+
+    tasks_csv = sys.argv[1]
+
+    in_f = open(tasks_csv)
+
+    csv_reader = csv.DictReader(in_f)
 
     h_f = open("hospitals.sql", "w")
-    perform_task(h_f, ccn, app_url, transparency_page)
+    
+    for row in csv_reader:
+        transparency_page = row.get('transparency_page')
+        ccn = row.get('ccn')
+        app_url = row.get('app_url')
+
+        perform_task(h_f, ccn, app_url, transparency_page)
+    
     h_f.close()
+    in_f.close()
 
 if __name__ == "__main__":
     main()
