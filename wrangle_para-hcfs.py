@@ -120,13 +120,15 @@ def convert_chunk(chunk, ccn):
     df_mid.loc[df_mid['hcpcs_cpt'].isnull(), 'hcpcs_cpt'] = ''
     df_mid.loc[df_mid['hcpcs_cpt'] == 'WC003', 'code'] = 'WC003'
     df_mid.loc[df_mid['hcpcs_cpt'] == 'WC003', 'hcpcs_cpt'] = ''
-    df_mid.loc[df_mid['hcpcs_cpt'] == 'CS003', 'code'] = 'CS003'
-    df_mid.loc[df_mid['hcpcs_cpt'] == 'CS003', 'hcpcs_cpt'] = ''
+    df_mid.loc[df_mid['hcpcs_cpt'].str.startswith('CS'), 'code'] = df_mid[df_mid['hcpcs_cpt'].str.startswith('CS')]['hcpcs_cpt']
+    df_mid.loc[df_mid['hcpcs_cpt'].str.startswith('CS'), 'hcpcs_cpt'] = ''
     df_mid.loc[df_mid['hcpcs_cpt'].str.isalpha(), 'code'] = df_mid[df_mid['hcpcs_cpt'].str.isalpha()]['hcpcs_cpt']
     df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].apply(lambda cpt: '' if len(cpt) != 5 else cpt)
     df_mid.loc[df_mid['hcpcs_cpt'].str.isalpha(), 'hcpcs_cpt'] = None
     df_mid.loc[df_mid['hcpcs_cpt'] == '', 'hcpcs_cpt'] = None
 
+    df_mid['ndc'] = df_mid['ndc'].apply(lambda ndc: ndc[:-1] if type(ndc) == str and len(ndc) == 14 else ndc)
+    
     df_mid['hospital_id'] = ccn
     df_mid['line_type'] = None
     if not 'local_code' in df_mid.columns:
