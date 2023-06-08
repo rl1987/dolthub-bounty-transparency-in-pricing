@@ -118,6 +118,8 @@ def convert_chunk(chunk, ccn):
         df_mid['hcpcs_cpt'] = None
 
     df_mid.loc[df_mid['hcpcs_cpt'].isnull(), 'hcpcs_cpt'] = ''
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'WC003', 'code'] = 'WC003'
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'WC003', 'hcpcs_cpt'] = ''
     df_mid.loc[df_mid['hcpcs_cpt'].str.isalpha(), 'code'] = df_mid[df_mid['hcpcs_cpt'].str.isalpha()]['hcpcs_cpt']
     df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].apply(lambda cpt: '' if len(cpt) != 5 else cpt)
     df_mid.loc[df_mid['hcpcs_cpt'].str.isalpha(), 'hcpcs_cpt'] = None
