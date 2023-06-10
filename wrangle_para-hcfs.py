@@ -173,6 +173,14 @@ def perform_task(h_f, ccn, app_url, transparency_page):
     resp2 = requests.post('https://apps.para-hcfs.com/PTT/FinalLinks/Reports.aspx', params=params, data=data)
     print(resp2.url)
 
+    filename = resp2.headers['content-disposition'].split('"')[1]
+    ein = derive_ein_from_filename(filename)
+    
+    print(filename)
+    csv_f = open(filename, "w")
+    csv_f.write(resp2.text)
+    csv_f.close()
+    
     dfs = []
     
     chunks = resp2.text.split("\r\n\r\n")
@@ -184,9 +192,6 @@ def perform_task(h_f, ccn, app_url, transparency_page):
     df_out = pd.concat(dfs)
 
     df_out.to_csv('rate_' + ccn + '.csv', index=False)
-    
-    filename = resp2.headers['content-disposition'].split('"')[1]
-    ein = derive_ein_from_filename(filename)
     
     date_str = chunks[0].split(" ")[-1]
 
