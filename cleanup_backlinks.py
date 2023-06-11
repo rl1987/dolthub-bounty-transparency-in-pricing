@@ -18,6 +18,7 @@ def get_linkback_url(app_url):
         return linkback_url[0]
 
     return None
+    
 def check_url(url):
     print("Checking:", url)
     
@@ -102,6 +103,12 @@ def main():
     df_out = pd.DataFrame(rows)
 
     df_out.to_csv('para_transparency.csv', index=False)
+
+    remaining_urls = list(set(checked_urls) - set(df_out['mrf_url'].to_list()))
+
+    out_f = open("remaining_urls.txt", "w")
+    out_f.write("\n".join(remaining_urls))
+    out_f.close()
 
 if __name__ == "__main__":
     main()
