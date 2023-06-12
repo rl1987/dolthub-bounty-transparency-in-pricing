@@ -130,7 +130,7 @@ def convert_chunk(chunk, ccn):
 
     df_mid.loc[df_mid['hcpcs_cpt'].isnull(), 'hcpcs_cpt'] = ''
 
-    for bad_prefix in ['WC', 'CS', 'ED', 'GO', 'CC', 'JO', 'AA', '1-', 'CI']:
+    for bad_prefix in ['WC', 'CS', 'ED', 'GO', 'CC', 'JO', 'AA', '1-', 'CI', '2N', '3R']:
         df_mid.loc[df_mid['hcpcs_cpt'].str.startswith(bad_prefix), 'code'] = df_mid[df_mid['hcpcs_cpt'].str.startswith(bad_prefix)]['hcpcs_cpt']
         df_mid.loc[df_mid['hcpcs_cpt'].str.startswith(bad_prefix), 'hcpcs_cpt'] = ''
 
