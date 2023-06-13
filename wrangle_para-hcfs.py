@@ -12,7 +12,7 @@ import requests
 from lxml import html
 import js2xml
 
-from helpers import derive_ein_from_filename
+from helpers import *
 
 TARGET_COLUMNS = [
     'hospital_id',
@@ -71,6 +71,29 @@ def payer_name_to_payer_category(payer_name):
         return 'min'
 
     return 'payer'
+
+def fix_codes(row):
+    def match_and_set(row, code):
+        if code is None:
+            return
+        
+        if code_is_cpt(code) or code_is_hcpcs(code):
+            if row['hcpcs_cpt'] is None:
+                row['hcpcs_cpt'] = code
+        elif code_is_ms_drg(code):
+            if row['ms_drg'] is None:
+                row['ms_drg'] = code
+        elif code_is_icd9(code) or code_is_icd10(code):
+            if row['icd'] is None:
+                row['icd'] = code
+    
+    code = row.get('code')
+    match_and_set(row, code)
+
+    local_code = row.get('local_code')
+    match_and_set(row, code)
+
+    return row
 
 def convert_chunk(chunk, ccn):
     csv_buf = StringIO(chunk)
@@ -171,6 +194,8 @@ def convert_chunk(chunk, ccn):
     df_mid['contracting_method'] = None
     df_mid['additional_payer_specific_notes'] = None
 
+    df_mid = df_mid.apply(fix_codes, axis=1)
+    
     df_out = pd.DataFrame(df_mid[TARGET_COLUMNS])
     return df_out
 
@@ -256,4 +281,3 @@ def main():
 if __name__ == "__main__":
     main()
     
-
