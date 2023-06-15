@@ -95,6 +95,22 @@ def fix_codes(row):
 
     return row
 
+def split_off_modifiers(row):
+    hcpcs_cpt = row.get('hcpcs_cpt')
+    if type(hcpcs_cpt) != str:
+        return row
+
+    if len(hcpcs_cpt) == 7:
+        row['modifiers'] = hcpcs_cpt[-2:]
+        row['hcpcs_cpt'] = hcpcs_cpt[:5]
+
+    if len(hcpcs_cpt) == 9:
+        row['modifiers'] = hcpcs_cpt[-4:]
+        row['modifiers'] = row['modifiers'][:2] + "|" + row['modifiers'][-2:]
+        row['hcpcs_cpt'] = hcpcs_cpt[:5]
+    
+    return row
+
 def convert_chunk(chunk, ccn):
     csv_buf = StringIO(chunk)
 
@@ -144,6 +160,8 @@ def convert_chunk(chunk, ccn):
 
     df_mid['payer_category'] = df_mid['payer_name'].apply(payer_name_to_payer_category)
 
+    df_mid = df_mid.apply(lambda row: split_off_modifiers(row), axis=1)
+    
     df_mid = df_mid[df_mid['standard_charge'].notnull()]
 
     df_mid = pd.DataFrame(df_mid) # XXX
