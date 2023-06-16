@@ -112,9 +112,6 @@ def main():
     solver = create_solver()
     session = create_session()
 
-    get_backlinks(session, solver, 
-                  "https://apps.para-hcfs.com/PTT/FinalLinks/Fayette_V3.aspx")
-
     in_f = open("remaining_urls.txt", "r")
     urls = in_f.read().strip().split("\n")
     in_f.close()
