@@ -183,7 +183,10 @@ def convert_chunk(chunk, ccn):
     if 'ms_drg' in df_mid.columns:
         df_mid.loc[df_mid['ms_drg'].isnull(), 'ms_drg'] = ''
         df_mid.loc[df_mid['ms_drg'] != '', 'ms_drg'] = df_mid[df_mid['ms_drg'] != '']['ms_drg'].apply(lambda drg: str(drg).replace('.0', '').zfill(3))
-    
+
+    if not 'ndc' in df_mid.columns:
+        df_mid['ndc'] = None
+        
     # e.g. 12870-0001-1-99-100
     df_mid['ndc'] = df_mid['ndc'].apply(lambda ndc: ndc[:13] if type(ndc) == str and len(ndc) >= 14 else ndc)
     
@@ -242,6 +245,10 @@ def perform_task(h_f, ccn, app_url, transparency_page):
     csv_f = open(filename, "w")
     csv_f.write(resp2.text)
     csv_f.close()
+
+    if len(resp2.content) > 50 * 1024 * 1024:
+        print("File larger than 50MB - skipping")
+        return
     
     dfs = []
     
