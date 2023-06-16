@@ -126,8 +126,12 @@ def main():
 
     for url in urls:
         url = url.strip()
-
-        raw_backlinks = get_backlinks(session, solver, url)
+    
+        try:
+            raw_backlinks = get_backlinks(session, solver, url)
+        except Exception as e:
+            print(e)
+            continue
 
         if raw_backlinks is None:
             continue
