@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 
+import csv
 from pprint import pprint
 
 from anticaptchaofficial.turnstileproxyon import *
 import requests
 import tls_client
+
+FIELDNAMES = [ 'url', 'backlink_url', 'anchor', 'page_title' ]
 
 def create_solver():
     solver = turnstileProxyon()
@@ -81,9 +84,12 @@ def get_backlinks(session, solver, url):
 
     json_arr = resp1.json()
 
-    # TODO: check that
-    # 1) json_arr[0] == "Ok"
-    # 2) json_arr[1].data.backlinks > 0
+    if len(json_arr) != 2:
+        return None
+
+    n_backlinks = json_arr[1].get('data', dict()).get('backlinks')
+    if n_backlinks is None or n_backlinks == 0:
+        return None
 
     signed_input = json_arr[1].get('signedInput')
 
@@ -97,12 +103,51 @@ def get_backlinks(session, solver, url):
     print(resp2.url)
     pprint(resp2.json())
 
+    if len(resp2.json()) != 2:
+        return None
+
+    return resp2.json()[1].get('topBacklinks', dict()).get('backlinks')
+
 def main():
     solver = create_solver()
     session = create_session()
 
     get_backlinks(session, solver, 
                   "https://apps.para-hcfs.com/PTT/FinalLinks/Fayette_V3.aspx")
+
+    in_f = open("remaining_urls.txt", "r")
+    urls = in_f.read().strip().split("\n")
+    in_f.close()
+
+    out_f = open("ahrefs.csv", "w", encoding="utf-8")
+
+    csv_writer = csv.DictWriter(out_f, fieldnames=FIELDNAMES, lineterminator="\n")
+    csv_writer.writeheader()
+
+    for url in urls:
+        url = url.strip()
+
+        raw_backlinks = get_backlinks(session, solver, url)
+
+        if raw_backlinks is None:
+            continue
+
+        for backlink_dict in raw_backlinks:
+            backlink_url = backlink_dict.get("urlFrom")
+            anchor = backlink_dict.get("anchor")
+            page_title = backlink_dict.get('title')
+
+            row = {
+                'url': url,
+                'backlink_url': backlink_url,
+                'anchor': anchor,
+                'page_title': page_title
+            }
+
+            pprint(row)
+            csv_writer.writerow(row)
+
+    out_f.close()
 
 if __name__ == "__main__":
     main()
