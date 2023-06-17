@@ -171,7 +171,7 @@ def convert_chunk(chunk, ccn):
 
     df_mid.loc[df_mid['hcpcs_cpt'].isnull(), 'hcpcs_cpt'] = ''
 
-    for bad_prefix in ['WC', 'CS', 'ED', 'GO', 'CC', 'JO', 'AA', '1-', 'CI', '2N', '3R']:
+    for bad_prefix in ['WC', 'CS', 'ED', 'GO', 'CC', 'JO', 'AA', '1-', 'CI', '2N', '3R', 'ZB', 'P402D']:
         df_mid.loc[df_mid['hcpcs_cpt'].str.startswith(bad_prefix), 'code'] = df_mid[df_mid['hcpcs_cpt'].str.startswith(bad_prefix)]['hcpcs_cpt']
         df_mid.loc[df_mid['hcpcs_cpt'].str.startswith(bad_prefix), 'hcpcs_cpt'] = ''
 
@@ -284,12 +284,12 @@ def main():
     csv_reader = csv.DictReader(in_f)
 
     h_f = open("hospitals.sql", "w")
-    
+
     for row in csv_reader:
         transparency_page = row.get('transparency_page')
         ccn = row.get('ccn')
         app_url = row.get('app_url')
-
+        
         try:
             perform_task(h_f, ccn, app_url, transparency_page)
         except Exception as e:
