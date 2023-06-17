@@ -171,10 +171,12 @@ def convert_chunk(chunk, ccn):
 
     df_mid.loc[df_mid['hcpcs_cpt'].isnull(), 'hcpcs_cpt'] = ''
 
-    for bad_prefix in ['WC', 'CS', 'ED', 'GO', 'CC', 'JO', 'AA', '1-', 'CI', '2N', '3R', 'ZB', 'P402D']:
-        df_mid.loc[df_mid['hcpcs_cpt'].str.startswith(bad_prefix), 'code'] = df_mid[df_mid['hcpcs_cpt'].str.startswith(bad_prefix)]['hcpcs_cpt']
-        df_mid.loc[df_mid['hcpcs_cpt'].str.startswith(bad_prefix), 'hcpcs_cpt'] = ''
+    df_mid['hcpcs_cpt_broken'] = df_mid['hcpcs_cpt'].apply(lambda hcpcs_cpt: 0 if code_is_cpt(hcpcs_cpt) or code_is_hcpcs(hcpcs_cpt) else 1)
+    df_mid.loc[df_mid['hcpcs_cpt_broken'] == 1, 'code'] = df_mid[df_mid['hcpcs_cpt_broken'] == 1]['hcpcs_cpt']
+    df_mid.loc[df_mid['hcpcs_cpt_broken'] == 1, 'hcpcs_cpt'] = ''
 
+    del df_mid['hcpcs_cpt_broken']
+    
     df_mid.loc[df_mid['hcpcs_cpt'].str.isalpha(), 'code'] = df_mid[df_mid['hcpcs_cpt'].str.isalpha()]['hcpcs_cpt']
     df_mid['hcpcs_cpt'] = df_mid['hcpcs_cpt'].apply(lambda cpt: '' if len(cpt) != 5 else cpt.upper())
     df_mid.loc[df_mid['hcpcs_cpt'].str.isalpha(), 'hcpcs_cpt'] = None
@@ -210,6 +212,8 @@ def convert_chunk(chunk, ccn):
     df_mid['drug_quantity'] = None
     df_mid['drug_unit_of_measurement'] = None
     df_mid['drug_type_of_measurement'] = None
+    if not 'drug_hcpcs_multiplier' in df_mid.columns:
+        df_mid['drug_hcpcs_multiplier'] = None
     df_mid['plan_name'] = None
     df_mid['standard_charge_percent'] = None
     df_mid['contracting_method'] = None
