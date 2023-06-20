@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 from lxml import html
 
+
 def get_linkback_url(app_url):
     resp = requests.get(app_url)
 
@@ -18,10 +19,11 @@ def get_linkback_url(app_url):
         return linkback_url[0]
 
     return None
-    
+
+
 def check_url(url):
     print("Checking:", url)
-    
+
     try:
         resp = requests.head(url, timeout=30.0)
         print(resp)
@@ -29,13 +31,14 @@ def check_url(url):
             return url
 
         if resp.status_code == 302:
-            return resp.headers.get('Location')
+            return resp.headers.get("Location")
 
         return None
     except Exception as e:
         print(e)
         return None
-        
+
+
 def main():
     in_f = open("backlinks.csv", "r")
     csv_str = in_f.read()
@@ -48,20 +51,20 @@ def main():
 
     df = pd.read_csv(buf)
 
-    df = df[df['Target URL'].str.contains('/PTT/FinalLinks/')]
-    df = df[df['Target URL'].str.endswith('.aspx')]
-    df = df[df['Title'].notnull()]
+    df = df[df["Target URL"].str.contains("/PTT/FinalLinks/")]
+    df = df[df["Target URL"].str.endswith(".aspx")]
+    df = df[df["Title"].notnull()]
 
-    target_urls = set(df['Target URL'].to_list())
+    target_urls = set(df["Target URL"].to_list())
 
     checked_urls = set()
 
-    df = df[['URL', 'Target URL']]
-    df = df.rename(columns={'URL': 'backlink_url', 'Target URL': 'app_url'})
-    
-    urls_to_check = list(set(df['app_url'].to_list()))
-    urls_to_check = ['https://' + url for url in urls_to_check]
-                 
+    df = df[["URL", "Target URL"]]
+    df = df.rename(columns={"URL": "backlink_url", "Target URL": "app_url"})
+
+    urls_to_check = list(set(df["app_url"].to_list()))
+    urls_to_check = ["https://" + url for url in urls_to_check]
+
     for url in urls_to_check:
         url = check_url(url)
         if url is not None:
@@ -75,18 +78,20 @@ def main():
         linkback_url = get_linkback_url(url)
         if linkback_url is None:
             continue
-    
+
         domain = urlparse(linkback_url).netloc
         print(url, linkback_url, domain)
 
-        backlink_url = df[df['backlink_url'].str.contains(domain)]['backlink_url'].to_list()
+        backlink_url = df[df["backlink_url"].str.contains(domain)][
+            "backlink_url"
+        ].to_list()
         if len(backlink_url) == 0:
             continue
 
         backlink_url = backlink_url[0]
         backlink_url = "https://" + backlink_url
 
-        print(backlink_url, "->" , url)
+        print(backlink_url, "->", url)
 
         true_backlinks[url] = backlink_url
 
@@ -95,20 +100,18 @@ def main():
     for app_url in true_backlinks.keys():
         transparency_page = true_backlinks[app_url]
 
-        rows.append({
-            'mrf_url': app_url,
-            'transparency_page': transparency_page
-        })
+        rows.append({"mrf_url": app_url, "transparency_page": transparency_page})
 
     df_out = pd.DataFrame(rows)
 
-    df_out.to_csv('para_transparency.csv', index=False)
+    df_out.to_csv("para_transparency.csv", index=False)
 
-    remaining_urls = list(set(checked_urls) - set(df_out['mrf_url'].to_list()))
+    remaining_urls = list(set(checked_urls) - set(df_out["mrf_url"].to_list()))
 
     out_f = open("remaining_urls.txt", "w")
     out_f.write("\n".join(remaining_urls))
     out_f.close()
+
 
 if __name__ == "__main__":
     main()

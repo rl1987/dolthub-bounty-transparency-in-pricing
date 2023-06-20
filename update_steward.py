@@ -6,6 +6,7 @@ import requests
 from lxml import html
 import doltcli as dolt
 
+
 def main():
     dolt_db_dir = sys.argv[1]
 
@@ -25,11 +26,13 @@ def main():
         tree = html.fromstring(resp.text)
 
         file_url = tree.xpath('//a[contains(@href, "standardcharges.csv")]/@href')[0]
-        
-        sql2 = "UPDATE hospitals SET standard_charge_file_url = '{}' WHERE enrollment_id = '{}';".format(file_url, row.get("enrollment_id"))
+
+        sql2 = "UPDATE hospitals SET standard_charge_file_url = '{}' WHERE enrollment_id = '{}';".format(
+            file_url, row.get("enrollment_id")
+        )
 
         db.sql(sql2, result_format="csv")
 
+
 if __name__ == "__main__":
     main()
-

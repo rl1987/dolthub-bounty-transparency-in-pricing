@@ -7,9 +7,17 @@ from pprint import pprint
 import doltcli as dolt
 import requests
 
-FIELDNAMES = ["ccn", "organization_name", "doing_business_as_name", "homepage",
-              "standard_charge_file_url", "http_status", "content_len", 
-              "content_type"]
+FIELDNAMES = [
+    "ccn",
+    "organization_name",
+    "doing_business_as_name",
+    "homepage",
+    "standard_charge_file_url",
+    "http_status",
+    "content_len",
+    "content_type",
+]
+
 
 def main():
     if len(sys.argv) != 2:
@@ -18,7 +26,7 @@ def main():
         return
 
     out_f = open("http_head_results.csv", "w", encoding="utf-8")
-    
+
     csv_writer = csv.DictWriter(out_f, fieldnames=FIELDNAMES, lineterminator="\n")
     csv_writer.writeheader()
 
@@ -31,7 +39,7 @@ def main():
 
     for db_row in res["rows"]:
         try:
-            resp = requests.head(db_row['standard_charge_file_url'], timeout=3.0)
+            resp = requests.head(db_row["standard_charge_file_url"], timeout=3.0)
             print(resp.url)
         except KeyboardInterrupt:
             break
@@ -39,9 +47,9 @@ def main():
             continue
 
         out_row = dict(db_row)
-        out_row['http_status'] = resp.status_code
-        out_row['content_len'] = resp.headers.get('Content-Length')
-        out_row['content_type'] = resp.headers.get('Content-Type')
+        out_row["http_status"] = resp.status_code
+        out_row["content_len"] = resp.headers.get("Content-Length")
+        out_row["content_type"] = resp.headers.get("Content-Type")
 
         pprint(out_row)
 
@@ -52,4 +60,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

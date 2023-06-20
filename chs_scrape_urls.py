@@ -9,8 +9,18 @@ import requests
 from lxml import html
 import js2xml
 
-FIELDNAMES = [ "name", "street_addr", "city", "zip_code", "state", 
-              "phone", "website", "transparency_page", "mrf_urls" ]
+FIELDNAMES = [
+    "name",
+    "street_addr",
+    "city",
+    "zip_code",
+    "state",
+    "phone",
+    "website",
+    "transparency_page",
+    "mrf_urls",
+]
+
 
 def main():
     out_f = open("chs_urls.csv", "w", encoding="utf-8")
@@ -22,7 +32,7 @@ def main():
 
     resp0 = requests.get(start_url)
 
-    js = resp0.content.decode('utf-8-sig')
+    js = resp0.content.decode("utf-8-sig")
 
     js = js.replace("locationDataCallback(", "")[:-2]
 
@@ -35,7 +45,7 @@ def main():
             lines[i] = None
 
     lines = list(filter(lambda line: line is not None, lines))
-    
+
     js = "\n".join(lines)
     js = js.replace("\/", "/")
 
@@ -44,22 +54,22 @@ def main():
     rows = []
 
     for state in json_dict.keys():
-        hospitals = json_dict[state]['hospitals']
+        hospitals = json_dict[state]["hospitals"]
         for hospital_dict in hospitals:
             row = {
-                'name': hospital_dict.get('name'),
-                'street_addr': hospital_dict.get('street'),
-                'city': hospital_dict.get('city'),
-                'zip_code': hospital_dict.get('zip'),
-                'state': state,
-                'phone': hospital_dict.get("phone"),
-                'website': hospital_dict.get("websiteUrl")
+                "name": hospital_dict.get("name"),
+                "street_addr": hospital_dict.get("street"),
+                "city": hospital_dict.get("city"),
+                "zip_code": hospital_dict.get("zip"),
+                "state": state,
+                "phone": hospital_dict.get("phone"),
+                "website": hospital_dict.get("websiteUrl"),
             }
-            
+
             rows.append(row)
 
     for row in rows:
-        website = row.get('website')
+        website = row.get("website")
         transparency_page = urljoin(website, "/pricing-information")
 
         resp = requests.get(transparency_page)
@@ -71,13 +81,14 @@ def main():
         tree = html.fromstring(resp.text)
 
         mrf_urls = tree.xpath('//a[contains(@href, "charges.csv")]/@href')
-        mrf_urls = list(map(lambda url: urljoin(resp.url, url).replace(" ", "%20"), 
-                            mrf_urls))
+        mrf_urls = list(
+            map(lambda url: urljoin(resp.url, url).replace(" ", "%20"), mrf_urls)
+        )
 
         mrf_urls = "|".join(mrf_urls)
 
-        row['transparency_page'] = transparency_page
-        row['mrf_urls'] = mrf_urls
+        row["transparency_page"] = transparency_page
+        row["mrf_urls"] = mrf_urls
 
         pprint(row)
 
