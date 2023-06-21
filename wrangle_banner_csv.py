@@ -157,6 +157,10 @@ def convert_dataframe(df_in, ccn):
 
     df_mid = df_mid.apply(recognise_codes, axis=1)
 
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'CASH', 'hcpcs_cpt'] = None
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'TRACK', 'hcpcs_cpt'] = None
+    df_mid.loc[df_mid['hcpcs_cpt'] == 'COMM', 'hcpcs_cpt'] = None
+    
     df_mid['standard_charge'] = df_mid['standard_charge'].apply(cleanup_dollar_value)
     df_mid = df_mid[df_mid['standard_charge'] != "N/A"]
     df_mid = df_mid[df_mid['standard_charge'].notnull()]
