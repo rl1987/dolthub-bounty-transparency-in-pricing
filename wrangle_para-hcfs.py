@@ -289,7 +289,7 @@ def perform_task(h_f, ccn, app_url, transparency_page):
     csv_f.write(resp2.text)
     csv_f.close()
 
-    if len(resp2.content) > 50 * 1024 * 1024:
+    if len(resp2.content) > 75 * 1024 * 1024:
         print("File larger than 50MB - skipping")
         return
 
