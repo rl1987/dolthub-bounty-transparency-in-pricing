@@ -11,37 +11,37 @@ from lxml import html
 from helpers import *
 
 TARGET_COLUMNS = [
-    'hospital_id',
+    "hospital_id",
     #'row_id',
-    'line_type',
-    'description',
-    'rev_code',
-    'local_code',
-    'code',
-    'ms_drg',
-    'apr_drg',
-    'eapg',
-    'hcpcs_cpt',
-    'modifiers',
-    'alt_hcpcs_cpt',
-    'thru',
-    'apc',
-    'icd',
-    'ndc',
-    'drug_hcpcs_multiplier',
-    'drug_quantity',
-    'drug_unit_of_measurement',
-    'drug_type_of_measurement',
-    'billing_class',
-    'setting',
-    'payer_category',
-    'payer_name',
-    'plan_name',
-    'standard_charge',
-    'standard_charge_percent',
-    'contracting_method',
-    'additional_generic_notes',
-    'additional_payer_specific_notes'
+    "line_type",
+    "description",
+    "rev_code",
+    "local_code",
+    "code",
+    "ms_drg",
+    "apr_drg",
+    "eapg",
+    "hcpcs_cpt",
+    "modifiers",
+    "alt_hcpcs_cpt",
+    "thru",
+    "apc",
+    "icd",
+    "ndc",
+    "drug_hcpcs_multiplier",
+    "drug_quantity",
+    "drug_unit_of_measurement",
+    "drug_type_of_measurement",
+    "billing_class",
+    "setting",
+    "payer_category",
+    "payer_name",
+    "plan_name",
+    "standard_charge",
+    "standard_charge_percent",
+    "contracting_method",
+    "additional_generic_notes",
+    "additional_payer_specific_notes",
 ]
 
 TRANSPARENCY_PAGE = "https://www.bannerhealth.com/patients/billing/pricing-resources/hospital-price-transparency"
@@ -67,17 +67,19 @@ TASKS = {
     "291313": "https://www.cdmpricing.com/d310a4fd4e69ba0d31f4c10d95f7d7e7/standard-charges",
     "531305": "https://www.cdmpricing.com/8ad6766fce7c182be1c85848ce4b21c9/standard-charges",
     "531306": "https://www.cdmpricing.com/4f223e503a44d435c96685a9a38a9864/standard-charges",
-    "531307": "https://www.cdmpricing.com/4b03a29374010f22d3d1e0cf8d2e26ea/standard-charges"
+    "531307": "https://www.cdmpricing.com/4b03a29374010f22d3d1e0cf8d2e26ea/standard-charges",
 }
 
-# Note: this returns a tuple of: 
+# Note: this returns a tuple of:
 # 1. Pandas DataFrame
 # 2. last_updated value.
 # 3. File name
 # 4. EIN
 def get_input_dataframe(mrf_url):
     hospital_id = mrf_url.split("/")[-2]
-    api_url = "https://apim.services.craneware.com/api-pricing-transparency/api/public/{}/metadata/cdmFile".format(hospital_id)
+    api_url = "https://apim.services.craneware.com/api-pricing-transparency/api/public/{}/metadata/cdmFile".format(
+        hospital_id
+    )
 
     resp = requests.get(api_url)
     print(resp.url)
@@ -88,109 +90,124 @@ def get_input_dataframe(mrf_url):
 
     ein = derive_ein_from_filename(filename)
 
-    csv_str = base64.b64decode(base64_str).decode('utf-8-sig')
-    out_f = open(filename, 'w')
+    csv_str = base64.b64decode(base64_str).decode("utf-8-sig")
+    out_f = open(filename, "w")
     out_f.write(csv_str)
     out_f.close()
-    
-    starts_at = csv_str.index('\n') + 1
+
+    starts_at = csv_str.index("\n") + 1
     first_line = csv_str[:starts_at].strip()
 
-    date_str = first_line.split('"')[1].replace('Updated on ', '').replace('Updated on: ', '')
-    last_updated = parse_datetime(date_str).isoformat().split('T')[0]
+    date_str = (
+        first_line.split('"')[1].replace("Updated on ", "").replace("Updated on: ", "")
+    )
+    last_updated = parse_datetime(date_str).isoformat().split("T")[0]
 
     s_f = StringIO(csv_str[starts_at:])
     df_in = pd.read_csv(s_f)
 
     return df_in, last_updated, filename, ein
 
+
 def recognise_codes(row):
-    line_type = row['line_type']
-    code = row['code']
-    
-    if line_type == 'Charge Code':
-        row['local_code'] = code
-    elif line_type == 'HCPCS/CPT':
-        row['hcpcs_cpt'] = code
+    line_type = row["line_type"]
+    code = row["code"]
+
+    if line_type == "Charge Code":
+        row["local_code"] = code
+    elif line_type == "HCPCS/CPT":
+        row["hcpcs_cpt"] = code
     else:
         if code_is_ms_drg(code):
-            row['ms_drg'] = code
+            row["ms_drg"] = code
         elif code_is_cpt(code) or code_is_hcpcs(code):
-            row['hcpcs_cpt'] = code
+            row["hcpcs_cpt"] = code
 
     return row
+
 
 def payer_category_from_payer_name(payer_name):
     payer_name = payer_name.strip()
     if payer_name == "Gross Charge":
-        return 'gross'
+        return "gross"
     elif payer_name == "Discounted Cash Price":
-        return 'cash'
+        return "cash"
     elif payer_name == "De-identified min contracted rate":
-        return 'min'
+        return "min"
     elif payer_name == "De-identified max contracted rate":
-        return 'max'
+        return "max"
 
-    return 'payer'
+    return "payer"
+
 
 def convert_dataframe(df_in, ccn):
     df_mid = pd.DataFrame(df_in)
-    
-    df_mid = df_mid.rename(columns={
-        'Code': 'code',
-        'Description': 'description',
-        'Type': 'line_type',
-    })
+
+    df_mid = df_mid.rename(
+        columns={
+            "Code": "code",
+            "Description": "description",
+            "Type": "line_type",
+        }
+    )
 
     money_columns = df_mid.columns[3:]
     remaining_columns = df_mid.columns[:3]
-    df_mid = pd.melt(df_mid, id_vars=remaining_columns, var_name='payer_name', value_name='standard_charge')
+    df_mid = pd.melt(
+        df_mid,
+        id_vars=remaining_columns,
+        var_name="payer_name",
+        value_name="standard_charge",
+    )
 
-    df_mid.loc[df_mid['line_type'] == 'Outpatient', 'setting'] = 'outpatient'
-    df_mid.loc[df_mid['line_type'] == 'Inpatient', 'setting'] = 'outpatient'
+    df_mid.loc[df_mid["line_type"] == "Outpatient", "setting"] = "outpatient"
+    df_mid.loc[df_mid["line_type"] == "Inpatient", "setting"] = "outpatient"
 
-    df_mid.loc[df_mid['line_type'] == 'Inpatient', 'line_type'] = None
-    df_mid.loc[df_mid['line_type'] == 'Outpatient', 'line_type'] = None
+    df_mid.loc[df_mid["line_type"] == "Inpatient", "line_type"] = None
+    df_mid.loc[df_mid["line_type"] == "Outpatient", "line_type"] = None
 
-    df_mid['hcpcs_cpt'] = None
-    df_mid['ms_drg'] = None
+    df_mid["hcpcs_cpt"] = None
+    df_mid["ms_drg"] = None
 
     df_mid = df_mid.apply(recognise_codes, axis=1)
 
-    df_mid.loc[df_mid['hcpcs_cpt'] == 'CASH', 'hcpcs_cpt'] = None
-    df_mid.loc[df_mid['hcpcs_cpt'] == 'TRACK', 'hcpcs_cpt'] = None
-    df_mid.loc[df_mid['hcpcs_cpt'] == 'COMM', 'hcpcs_cpt'] = None
-    
-    df_mid['standard_charge'] = df_mid['standard_charge'].apply(cleanup_dollar_value)
-    df_mid = df_mid[df_mid['standard_charge'] != "N/A"]
-    df_mid = df_mid[df_mid['standard_charge'].notnull()]
-    
-    df_mid['payer_category'] = df_mid['payer_name'].apply(payer_category_from_payer_name)
+    df_mid.loc[df_mid["hcpcs_cpt"] == "CASH", "hcpcs_cpt"] = None
+    df_mid.loc[df_mid["hcpcs_cpt"] == "TRACK", "hcpcs_cpt"] = None
+    df_mid.loc[df_mid["hcpcs_cpt"] == "COMM", "hcpcs_cpt"] = None
 
-    df_mid['hospital_id'] = ccn
-    df_mid['rev_code'] = None
-    df_mid['apr_drg'] = None
-    df_mid['eapg'] = None
-    df_mid['modifiers'] = None
-    df_mid['alt_hcpcs_cpt'] = None
-    df_mid['thru'] = None
-    df_mid['apc'] = None
-    df_mid['icd'] = None
-    df_mid['ndc'] = None
-    df_mid['drug_hcpcs_multiplier'] = None
-    df_mid['drug_quantity'] = None
-    df_mid['drug_unit_of_measurement'] = None
-    df_mid['drug_type_of_measurement'] = None
-    df_mid['billing_class'] = None
-    df_mid['plan_name'] = None
-    df_mid['standard_charge_percent'] = None
-    df_mid['contracting_method'] = None
-    df_mid['additional_generic_notes'] = None
-    df_mid['additional_payer_specific_notes'] = None
+    df_mid["standard_charge"] = df_mid["standard_charge"].apply(cleanup_dollar_value)
+    df_mid = df_mid[df_mid["standard_charge"] != "N/A"]
+    df_mid = df_mid[df_mid["standard_charge"].notnull()]
+
+    df_mid["payer_category"] = df_mid["payer_name"].apply(
+        payer_category_from_payer_name
+    )
+
+    df_mid["hospital_id"] = ccn
+    df_mid["rev_code"] = None
+    df_mid["apr_drg"] = None
+    df_mid["eapg"] = None
+    df_mid["modifiers"] = None
+    df_mid["alt_hcpcs_cpt"] = None
+    df_mid["thru"] = None
+    df_mid["apc"] = None
+    df_mid["icd"] = None
+    df_mid["ndc"] = None
+    df_mid["drug_hcpcs_multiplier"] = None
+    df_mid["drug_quantity"] = None
+    df_mid["drug_unit_of_measurement"] = None
+    df_mid["drug_type_of_measurement"] = None
+    df_mid["billing_class"] = None
+    df_mid["plan_name"] = None
+    df_mid["standard_charge_percent"] = None
+    df_mid["contracting_method"] = None
+    df_mid["additional_generic_notes"] = None
+    df_mid["additional_payer_specific_notes"] = None
 
     df_out = pd.DataFrame(df_mid[TARGET_COLUMNS])
 
     return df_out
+
 
 def main():
     out_f = open("hospitals.sql", "w")
@@ -200,12 +217,13 @@ def main():
 
         filename = derive_filename_from_url(url)
         ein = derive_ein_from_filename(filename)
-        
+
         df_in, last_updated, filename, ein = get_input_dataframe(url)
         print(df_in)
-        
+
         query = 'UPDATE hospital SET ein = "{}", last_updated = "{}", file_name = "{}", mrf_url = "{}", transparency_page = "{}" WHERE id = "{}";'.format(
-                ein, last_updated, filename, url, TRANSPARENCY_PAGE, ccn)
+            ein, last_updated, filename, url, TRANSPARENCY_PAGE, ccn
+        )
 
         out_f.write(query)
         out_f.write("\n")
@@ -218,6 +236,6 @@ def main():
 
     out_f.close()
 
+
 if __name__ == "__main__":
     main()
-    
