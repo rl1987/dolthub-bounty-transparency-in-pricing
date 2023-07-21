@@ -36,7 +36,7 @@ TARGET_COLUMNS = [
     "drug_type_of_measurement",
     "billing_class",
     "setting",
-    "payer_category",
+    "rate_category",
     "payer_name",
     "plan_name",
     "standard_charge",
@@ -98,7 +98,7 @@ def derive_filename_from_url(url):
     return filename
 
 
-def payer_category_from_payer(payer):
+def rate_category_from_payer(payer):
     if payer == "Gross Charge":
         return "gross"
     elif payer == "Discounted Cash Price":
@@ -108,7 +108,7 @@ def payer_category_from_payer(payer):
     elif payer.startswith("Max"):
         return "max"
 
-    return "payer"
+    return "negotiated"
 
 
 def convert_cdm_dataframe(df_in, ccn):
@@ -162,7 +162,7 @@ def convert_cdm_dataframe(df_in, ccn):
     del df_mid["cpt"]
     del df_mid["hcpcs"]
 
-    df_mid["payer_category"] = df_mid["payer_name"].apply(payer_category_from_payer)
+    df_mid["rate_category"] = df_mid["payer_name"].apply(rate_category_from_payer)
 
     df_mid["hospital_id"] = ccn
     df_mid["line_type"] = None
@@ -234,7 +234,7 @@ def convert_bundle_dataframe(df_in, ccn):
         value_name="standard_charge",
     )
 
-    df_mid["payer_category"] = df_mid["payer_name"].apply(payer_category_from_payer)
+    df_mid["rate_category"] = df_mid["payer_name"].apply(rate_category_from_payer)
 
     df_mid["hospital_id"] = ccn
     df_mid["line_type"] = None
