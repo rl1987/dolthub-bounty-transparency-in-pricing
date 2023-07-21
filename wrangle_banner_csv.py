@@ -110,13 +110,13 @@ def get_input_dataframe(mrf_url):
 
 
 def recognise_codes(row):
-    line_type = row['line_type']
-    code = row['code']
-    
-    if line_type == 'Charge Code':
-        row['local_code'] = code
-    elif line_type == 'HCPCS/CPT':
-        row['hcpcs_cpt'] = code
+    line_type = row["line_type"]
+    code = row["code"]
+
+    if line_type == "Charge Code":
+        row["local_code"] = code
+    elif line_type == "HCPCS/CPT":
+        row["hcpcs_cpt"] = code
 
     return row
 

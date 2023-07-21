@@ -76,35 +76,35 @@ def get_input_dataframe(mrf_url):
     filename = resp.json().get("fileDownloadName")
 
     ein = derive_ein_from_filename(filename)
-    
+
     content = base64.b64decode(base64_str)
-    
-    out_f = open(filename, 'wb')
+
+    out_f = open(filename, "wb")
     out_f.write(content)
     out_f.close()
 
     b_f = BytesIO(content)
     df_in = pd.read_excel(b_f)
 
-    if df_in.columns[0] != 'Code':
+    if df_in.columns[0] != "Code":
         first_line = df_in.columns[0]
-        date_str = first_line.replace('Updated on ', '').replace('Updated on: ', '')
-        last_updated = parse_datetime(date_str).isoformat().split('T')[0]
+        date_str = first_line.replace("Updated on ", "").replace("Updated on: ", "")
+        last_updated = parse_datetime(date_str).isoformat().split("T")[0]
         df_in = pd.read_excel(b_f, header=1)
     else:
-        last_updated = '2021-01-01'
+        last_updated = "2021-01-01"
 
     return df_in, last_updated, filename, ein
 
 
 def recognise_codes(row):
-    line_type = row['line_type']
-    code = row['code']
-    
-    if line_type == 'Charge Code':
-        row['local_code'] = code
-    elif line_type == 'HCPCS/CPT' or code_is_cpt(code) or code_is_hcpcs(code):
-        row['hcpcs_cpt'] = code
+    line_type = row["line_type"]
+    code = row["code"]
+
+    if line_type == "Charge Code":
+        row["local_code"] = code
+    elif line_type == "HCPCS/CPT" or code_is_cpt(code) or code_is_hcpcs(code):
+        row["hcpcs_cpt"] = code
 
     return row
 
@@ -158,18 +158,20 @@ def convert_dataframe(df_in, ccn):
     df_mid.loc[df_mid["hcpcs_cpt"] == "TRACK", "hcpcs_cpt"] = None
     df_mid.loc[df_mid["hcpcs_cpt"] == "COMM", "hcpcs_cpt"] = None
 
-    df_mid['standard_charge'] = df_mid['standard_charge'].apply(lambda rate: str(rate).replace(',', '.').strip())
+    df_mid["standard_charge"] = df_mid["standard_charge"].apply(
+        lambda rate: str(rate).replace(",", ".").strip()
+    )
     df_mid = df_mid[df_mid["standard_charge"] != "N/A"]
-    df_mid = df_mid[df_mid['standard_charge'] != "nan"]
+    df_mid = df_mid[df_mid["standard_charge"] != "nan"]
     df_mid = df_mid[df_mid["standard_charge"].notnull()]
 
     df_mid["payer_category"] = df_mid["payer_name"].apply(
         payer_category_from_payer_name
     )
 
-    if not 'local_code' in df_mid.columns:
-        df_mid['local_code'] = None
-    
+    if not "local_code" in df_mid.columns:
+        df_mid["local_code"] = None
+
     df_mid["hospital_id"] = ccn
     df_mid["rev_code"] = None
     df_mid["apr_drg"] = None
@@ -201,10 +203,10 @@ def main():
 
     for ccn in TASKS.keys():
         urls = TASKS[ccn]
-        
+
         if type(urls) == str:
-            urls = [ urls ]
-            
+            urls = [urls]
+
         for url in urls:
             filename = derive_filename_from_url(url)
             ein = derive_ein_from_filename(filename)
