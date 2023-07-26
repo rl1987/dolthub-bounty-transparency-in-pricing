@@ -47,7 +47,7 @@ def main():
 
             row = {
                 "code": code,
-                "code_type": "hcpcs_cpt",
+                "code_type": "hcpcs",
                 "description": long_desc,
                 "url": resp2.url
             }
