@@ -29,7 +29,7 @@ def scrape_page(url):
         yield row
 
     for tr in dom.xpath('//table[@class="codelst"]//tr'):
-        icd10 = tr.xpath('./td[@class="code"]')[0].text.strip()
+        icd10 = tr.xpath('./td[starts-with(@class, "code")]/text()')[-1].strip()
         description = tr.xpath('./td[@class="desc"]/text()')[0]
 
         row = {
