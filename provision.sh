@@ -13,7 +13,7 @@ pip3 install --upgrade jupyterlab
 pip3 install --upgrade requests lxml openpyxl pandas xlrd doltcli httpx "httpx[http2]" js2xml
 pip3 install --upgrade anticaptchaofficial tls_client
 pip3 install --upgrade mysql-connector-python sqlalchemy==1.4.16
-pip3 install qdrant-client
+pip3 install qdrant-client openai
 
 curl -sSL https://repos.insights.digitalocean.com/install.sh -o /tmp/install.sh
 bash /tmp/install.sh
