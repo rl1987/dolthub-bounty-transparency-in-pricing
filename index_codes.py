@@ -4,9 +4,11 @@ import csv
 
 import openai
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams
+from qdrant_client.http.models import Distance, VectorParams, PointStruct
 
 point_id = 1
+
+openai.api_key = "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"
 
 def get_embeddings(text):
     response = openai.Embedding.create(
@@ -18,29 +20,39 @@ def get_embeddings(text):
     return embeddings
 
 def prepare_db():
-    client = QdrantClient("./qdrant_data")
+    client = QdrantClient(path="./qdrant_data")
 
     for collection_name in [ "cpt", "hcpcs", "ms_drg", "apr_drg", "icd10", "rev_code" ]:
         client.recreate_collection(
-            collection_name=collection_name.
+            collection_name=collection_name,
             vectors_config=VectorParams(size=1536, distance=Distance.DOT),
         )
     
     return client
 
-def index_code(code, code_type, description):
+def index_code(client, code, code_type, description):
     global point_id
 
     if code_type == 'hcpcs_cpt':
         code_type = 'hcpcs'
 
-    embeddings = get_embeddings(description)
+    try:
+        print(description)
+        embeddings = get_embeddings(description)
+    except Exception as e:
+        print(e)
+        print("Retrying...")
+        try:
+            embeddings = get_embeddings(description)
+        except Exception as e:
+            print(e)
+            return
 
     operation_info = client.upsert(
         collection_name=code_type,
         wait=True,
         points=[
-            PointStruct(id=point_id, vector=embeddings, payload={"description": description, "ms_drg": ms_drg}),
+            PointStruct(id=point_id, vector=embeddings, payload={"description": description, "code": code, "code_type": code_type}),
         ]
     )
 
@@ -59,7 +71,7 @@ def index_file(client, file_path):
         code_type = row.get('code_type')
         description = row.get('description')
 
-        index_code(code, code_type, description)
+        index_code(client, code, code_type, description)
 
     in_f.close()
 
