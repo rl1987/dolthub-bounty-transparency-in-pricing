@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 import re
 
 
@@ -42,7 +42,7 @@ def derive_ein_from_filename(filename):
 def derive_filename_from_url(url):
     o = urlparse(url)
     filename = o.path.split("/")[-1]
-    filename = filename.replace("%20", " ")
+    filename = unquote(filename)
     return filename
 
 
