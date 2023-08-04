@@ -43,23 +43,46 @@ TARGET_COLUMNS = [
     'additional_payer_specific_notes'
 ]
 
+# TODO: process the remaining MRFs in the future (some of them are larger than 150MB).
 TASKS = {
     "370099": "https://coc.ardenthealthservices.com/2023/oklahoma/201024792_Hillcrest-Hospital-Cushing_standardcharges.csv",
-    "370228": "https://coc.ardenthealthservices.com/2023/oklahoma/201547519_Bailey-Medical-Center_standardcharges.csv"
+    "370228": "https://coc.ardenthealthservices.com/2023/oklahoma/201547519_Bailey-Medical-Center_standardcharges.csv",
+    "323028": "https://coc.ardenthealthservices.com/2023/newmexico/815326294_Lovelace-Rehabilitation-Hospital_standardcharges.csv",
+    "450194": "https://coc.ardenthealthservices.com/2023/easttexas/824037220_UTHealth-Jacksonville-Hospital_standardcharges.csv",
+    "451380": "https://coc.ardenthealthservices.com/2023/easttexas/823817196_UTHealth-Quitman-Hospital_standardcharges.csv",
+    "451367": "https://coc.ardenthealthservices.com/2023/easttexas/823953636_UTHealth-Pittsburg-Hospital_standardcharges.csv",
+    "450475": "https://coc.ardenthealthservices.com/2023/easttexas/824019349_UTHealth-Henderson-Hospital_standardcharges.csv",
+    "670080": "https://coc.ardenthealthservices.com/2023/seton/272814378_Seton-Medical-Center_standardcharges.csv",
+    "370216": "https://coc.ardenthealthservices.com/2023/oklahoma/731600601_Tulsa-Spine-and-Specialty_standardcharges.csv",
+    "370183": "https://coc.ardenthealthservices.com/2023/oklahoma/201026264_Hillcrest-Hospital-Henryetta_standardcharges.csv",
+    "370015": "https://coc.ardenthealthservices.com/2023/oklahoma/820651263_Hillcrest-Hospital-Pryor_standardcharges.csv",
+    "450690": "https://coc.ardenthealthservices.com/2023/easttexas/301163729_UTHealth-North-Hospital_standardcharges.csv",
+    "453072": "https://coc.ardenthealthservices.com/2023/easttexas/823913174_UTHealth-Rehab-Hospital_standardcharges.csv"
 }
 
 TRANSPARENCY_PAGES = {
     "370099": "https://hillcrestcushing.com/pricing-transparency",
     "370228": "https://baileymedicalcenter.com/cost-care",
+    "323028": "https://lovelace.com/pricing-transparency",
+    "450194": "https://uthealthjacksonville.com/pricing-transparency",
+    "451380": "https://uthealthquitman.com/pricing-transparency",
+    "451367": "https://uthealthpittsburg.com/pricing-transparency",
+    "450475": "https://uthealthhenderson.com/pricing-transparency",
+    "670080": "https://setonharkerheights.net/pricing-transparency",
+    "370216": "https://www.tulsaspinehospital.com/pricing-transparency",
+    "370183": "https://hillcresthenryetta.com/cost-care",
+    "370015": "https://hillcrestpryor.com/pricing-transparency",
+    "450690": "https://uthealthnorth.com/cost-care",
+    "453072": "https://uthealthrehab.com/pricing-transparency"
 }
 
 def get_input_dataframe(url):
     filename = derive_filename_from_url(url)
     
     subprocess.run(["wget", "--no-clobber", url, "-O", filename])
-    df_in = pd.read_csv(filename, dtype=str, skiprows=[0])
+    df_in = pd.read_csv(filename, dtype=str, skiprows=[0], encoding='latin-1')
 
-    in_f = open(filename, "r")
+    in_f = open(filename, "r", encoding='latin-1')
     first_line = in_f.readline()
     in_f.close()
 
