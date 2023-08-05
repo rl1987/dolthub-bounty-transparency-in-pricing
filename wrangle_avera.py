@@ -287,7 +287,6 @@ def get_input_dataframe(session, url, sheet_name):
 
     return df_in
 
-
 TASKS = {
     "160124": "https://www.avera.org/app/files/public/e920ec8c-5f0b-480e-b0dd-8644ed571c8d/426037582_lakes-regional-hospital_standardcharges.xlsx",
     "161336": "https://www.avera.org/app/files/public/ecaf1876-8445-4bac-a539-746aa4a50654/420932564_hegg-health-center_standardcharges.xlsx",
@@ -319,6 +318,11 @@ TASKS = {
     "431332": "https://www.avera.org/app/files/public/657353e3-2de5-40f2-b265-f0460302fa29/460224604_avera-desmet_standardcharges.xlsx",
     "431337": "https://www.avera.org/app/files/public/862efce2-7f11-4c2b-939e-5608a8356a89/460224743_avera-hand-county-hospital_standardcharges.xlsx",
     "431338": "https://www.avera.org/app/files/public/f6cb31b1-0cf3-4316-be33-ea0b2da7bea5/460224743_avera-gregory-hospital_standardcharges.xlsx",
+    "431318": "https://www.avera.org/app/files/public/8850af7b-ff34-477f-965b-79ff172c6a6e/460369929_bowdle-healthcare-center_standardcharges.xlsx",
+    "431308": "https://www.avera.org/app/files/public/f9c43808-917b-4204-870d-b8d71ba55230/460246437_eureka-hospital_standardcharges.xlsx",
+    "431317": "https://www.avera.org/app/files/public/5e4013e0-4bce-4795-b4c6-5f7b307032df/466015787_landmann-jungman-hospital_standardcharges.xlsx",
+    "431316": "https://www.avera.org/app/files/public/5a4389b2-e63c-472c-8246-814a16d10245/466000400_redfield-community-memorial_standardcharges.xlsx",
+    "431315": "https://www.avera.org/app/files/public/06bf2b66-fbfd-4f79-9072-4db44bdee968/460226283_wagner-community-memorial_standardcharges.xlsx"
 }
 
 TRANSPARENCY_PAGE_URL = "https://www.avera.org/patients-visitors/price-transparency/"
