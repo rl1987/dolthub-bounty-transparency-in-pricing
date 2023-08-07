@@ -3,6 +3,7 @@
 from urllib.parse import urlparse, unquote
 import re
 
+import numpy as np
 
 def cleanup_dollar_value(value):
     if type(value) == str:
@@ -22,6 +23,9 @@ def cleanup_values(values):
 
 
 def pad_rev_code_if_needed(rev_code):
+    if type(rev_code) == float and not np.isnan(rev_code):
+        rev_code = str(int(rev_code))
+    
     if type(rev_code) == str and rev_code != "na":
         if len(rev_code) == 3:
             return "0" + rev_code
