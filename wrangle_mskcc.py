@@ -3,6 +3,7 @@
 import subprocess
 import json
 
+from dateutil.parser import parse as parse_datetime
 import pandas as pd
 import numpy as np
 
@@ -266,6 +267,8 @@ def main():
         "https://www.mskcc.org/teaser/standard-charges-northern-nj.json"]
 
     output_dfs = []
+
+    last_updated = None
     
     for url in urls:
         print(url)
@@ -288,6 +291,14 @@ def main():
                 billing_class = "facility"
             elif key.startswith("PHY"):
                 billing_class = "professional"
+            elif key == 'File Notes':
+                if last_updated is not None:
+                    continue
+                    
+                date_str = json_dict['File Notes'][-1]['Memorial Hospital for Cancer and Allied Diseases']
+                date_str = date_str.split(" ")[-1]
+                last_updated = parse_datetime(date_str).isoformat().split("T")[0]
+                continue
             else:
                 print(key)
                 print(json_dict[key])
@@ -307,6 +318,19 @@ def main():
 
     df_out.to_csv('rate_' + CCN + '.csv', index=False)
 
+    out_f = open("hospital.sql", "w")
+
+    filenames = list(map(lambda url: derive_filename_from_url(url), urls))
+    filenames = "|".join(filenames)
+
+    urls = "|".join(urls)
+
+    query = 'UPDATE hospital SET ein = "{}", last_updated = "{}", file_name = "{}", mrf_url = "{}", transparency_page = "{}" WHERE id = "{}";'.format(
+        EIN, last_updated, filenames, url, TRANSPARENCY_PAGE, CCN
+    )
+
+    out_f.write(query)
+    out_f.write("\n")
 
 if __name__ == "__main__":
     main()
